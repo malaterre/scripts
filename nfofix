@@ -10,6 +10,8 @@ import zipfile
 #import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 
+# ffprobe -loglevel quiet -show_entries stream=index,codec_name,codec_type:stream_tags=language -i /tmp/toto.mkv
+
 
 class FfmpegHelper(object):
 
@@ -93,6 +95,7 @@ class FfmpegHelper(object):
             command_line.extend(
                 ['-i', poster, '-disposition:v:1', 'attached_pic', '-map', '0', '-map', '1'])
             command_line.extend(['-map_metadata', '-1'])
+            command_line.extend(['-metadata:s:a:0', 'language=fra' ])
             command_line.extend(['-metadata', 'title=%s' %
                                  title, '-metadata', 'date=%s' % date])
             command_line.extend(['-c:a', 'copy'])
