@@ -16,7 +16,7 @@ class FfmpegHelper(object):
     """ 
     """
 
-    def __init__(self, input_file, output_dir = '/tmp/dbg'):
+    def __init__(self, input_file, output_dir='/tmp/dbg'):
         self.logger = self._get_logger()
         self.input_file = input_file
         self.output_dir = output_dir
@@ -31,8 +31,6 @@ class FfmpegHelper(object):
     def _raise_exception(self, message):
         if bool(self.nfo):
             self.logger.error(self.nfo.prettify())
-        if bool(self.unwrap_data):
-            self.logger.error(json.dumps(self.unwrap_data, indent=4))
         if bool(self.ffprobe_data):
             self.logger.error(json.dumps(self.ffprobe_data, indent=4))
         self.logger.error(message)
@@ -44,7 +42,7 @@ class FfmpegHelper(object):
         filename, file_extension = os.path.splitext(self.input_file)
         self.nfo_file = filename + '.nfo'
         with open(self.nfo_file) as nfo_xml:
-          self.nfo = BeautifulSoup(nfo_xml, 'lxml')
+            self.nfo = BeautifulSoup(nfo_xml, 'lxml')
         command_line = [self.ffprobe_command, '-hide_banner', '-show_streams',
                         '-show_format', '-print_format', 'json', '-i', self.input_file]
         if not self.verbose:
@@ -79,22 +77,28 @@ class FfmpegHelper(object):
         filename, file_extension = os.path.splitext(self.input_file)
         format_name = self.ffprobe_data['format']['format_name']
         if format_name == 'avi':
-          # convert to mkv for now
-          mkv_file = os.path.join( self.output_dir , os.path.basename(filename) + '.mkv')
-          command_line = [self.ffmpeg_command, '-hide_banner', '-y']
-          command_line.extend(['-fflags', '+genpts'])
-          command_line.extend([ '-i', self.input_file])
-          if not self.verbose:
-              command_line.extend(['-v', 'error'])
-          command_line.extend(['-map_metadata', '-1'])
-          title = self.nfo.title.string
-          date = self.nfo.year.string
-          command_line.extend(['-metadata',  'title=%s' %
-                               title, '-metadata', 'date=%s' % date])
-          command_line.extend(['-c:a', 'copy'])
-          command_line.extend(['-c:v', 'copy'])
-          command_line.extend([mkv_file])
-          errcode, stdout, stderr = self.call_process(command_line)
+            # convert to mkv for now
+            mkv_file = os.path.join(
+                self.output_dir, os.path.basename(filename) + '.mkv')
+            command_line = [self.ffmpeg_command, '-hide_banner', '-y']
+            command_line.extend(['-fflags', '+genpts'])
+            command_line.extend(['-i', self.input_file])
+            if not self.verbose:
+                command_line.extend(['-v', 'error'])
+            title = self.nfo.title.string
+            date = self.nfo.year.string
+            # /tmp/ast/Asterix.Cesar-poster.jpg
+            poster = filename + '-poster.jpg'
+            # -i *Dumbo*poster* -disposition:v:1 attached_pic -map 0 -map 1
+            command_line.extend(
+                ['-i', poster, '-disposition:v:1', 'attached_pic', '-map', '0', '-map', '1'])
+            command_line.extend(['-map_metadata', '-1'])
+            command_line.extend(['-metadata', 'title=%s' %
+                                 title, '-metadata', 'date=%s' % date])
+            command_line.extend(['-c:a', 'copy'])
+            command_line.extend(['-c:v', 'copy'])
+            command_line.extend([mkv_file])
+            errcode, stdout, stderr = self.call_process(command_line)
 
     def call_process(self, command_line_list, env=None, nolog=False):
         """ Thin wrapper over subprocess.call with logging functionality """
