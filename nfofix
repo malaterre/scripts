@@ -7,7 +7,8 @@ import sys
 import argparse
 import json
 import zipfile
-import xml.etree.ElementTree as ET
+#import xml.etree.ElementTree as ET
+from bs4 import BeautifulSoup
 
 
 class FfmpegHelper(object):
@@ -16,6 +17,7 @@ class FfmpegHelper(object):
     """
 
     def __init__(self, input_file, output_dir = '/tmp/dbg'):
+        self.logger = self._get_logger()
         self.input_file = input_file
         self.output_dir = output_dir
         self.ffprobe_command = 'ffprobe'
@@ -27,11 +29,13 @@ class FfmpegHelper(object):
         self.verbose = verbose
 
     def _raise_exception(self, message):
+        if bool(self.nfo):
+            self.logger.error(self.nfo.prettify())
         if bool(self.unwrap_data):
-            logging.error(json.dumps(self.unwrap_data, indent=4))
+            self.logger.error(json.dumps(self.unwrap_data, indent=4))
         if bool(self.ffprobe_data):
-            logging.error(json.dumps(self.ffprobe_data, indent=4))
-        logging.error(message)
+            self.logger.error(json.dumps(self.ffprobe_data, indent=4))
+        self.logger.error(message)
         raise Exception(message)
 
     def _grab_info(self):
@@ -39,17 +43,16 @@ class FfmpegHelper(object):
         """
         filename, file_extension = os.path.splitext(self.input_file)
         self.nfo_file = filename + '.nfo'
+        with open(self.nfo_file) as nfo_xml:
+          self.nfo = BeautifulSoup(nfo_xml, 'lxml')
         command_line = [self.ffprobe_command, '-hide_banner', '-show_streams',
                         '-show_format', '-print_format', 'json', '-i', self.input_file]
         if not self.verbose:
             command_line.extend(['-v', 'error'])
         errcode, stdout, stderr = self.call_process(command_line, nolog=True)
         self.ffprobe_data = json.loads(stdout)
-        print('coucou')
         if self.verbose:
-            print('coucou')
-            logging.info(json.dumps(self.ffprobe_data, indent=4))
-        print('coucou')
+            self.logger.info(json.dumps(self.ffprobe_data, indent=4))
 
     def _check_info(self):
         # Technical limitation:
@@ -69,32 +72,33 @@ class FfmpegHelper(object):
     def convert(self):
         self._grab_info()
         self._check_info()
-        #filename, file_extension = os.path.splitext(self.input_file)
-        #self.mp4_file = filename + '.mp4'
-        #command_line = [self.ffmpeg_command,
-        #                '-hide_banner', '-y', '-i', self.input_file]
-        #if not self.verbose:
-        #    command_line.extend(['-v', 'error'])
-        ## remove any existing metadata from original video, and set PatientName as title
-        ## and add StudyDate in comment field.
-        #command_line.extend(['-map_metadata', '-1'])
-        #title = self.unwrap_data['PatientName']
-        #comment = "StudyDate: %s" % self.unwrap_data['StudyDate']
-        #command_line.extend(['-metadata',  'title=%s' %
-        #                     title, '-metadata', 'comment=%s' % comment])
-        ## discard sound if any
-        #command_line.extend(['-an'])
-        ## MP4 container + AVC codec (legal requirement)
-        #command_line.extend(self._compute_video_flag())
-        ## move some information to the beginning of your file and allow the video
-        ## to begin playing before it is completely downloaded by the viewer.
-        #command_line.extend(['-movflags', '+faststart'])
-        #command_line.extend([self.mp4_file])
-        #errcode, stdout, stderr = self.call_process(command_line)
+        audio_stream = [stream for stream in self.ffprobe_data['streams']
+                        if stream['codec_type'] == 'audio'][0]
+        video_stream = [stream for stream in self.ffprobe_data['streams']
+                        if stream['codec_type'] == 'video'][0]
+        filename, file_extension = os.path.splitext(self.input_file)
+        format_name = self.ffprobe_data['format']['format_name']
+        if format_name == 'avi':
+          # convert to mkv for now
+          mkv_file = os.path.join( self.output_dir , os.path.basename(filename) + '.mkv')
+          command_line = [self.ffmpeg_command, '-hide_banner', '-y']
+          command_line.extend(['-fflags', '+genpts'])
+          command_line.extend([ '-i', self.input_file])
+          if not self.verbose:
+              command_line.extend(['-v', 'error'])
+          command_line.extend(['-map_metadata', '-1'])
+          title = self.nfo.title.string
+          date = self.nfo.year.string
+          command_line.extend(['-metadata',  'title=%s' %
+                               title, '-metadata', 'date=%s' % date])
+          command_line.extend(['-c:a', 'copy'])
+          command_line.extend(['-c:v', 'copy'])
+          command_line.extend([mkv_file])
+          errcode, stdout, stderr = self.call_process(command_line)
 
     def call_process(self, command_line_list, env=None, nolog=False):
         """ Thin wrapper over subprocess.call with logging functionality """
-        logging.info(
+        self.logger.info(
             "Preparing to subprocess.call an external process with "
             "the following command line: %s ( %s )",
             command_line_list,
@@ -116,10 +120,24 @@ class FfmpegHelper(object):
                 binary, errcode, stdout, stderr))
         else:
             if not nolog and stderr != '':
-                logging.info("The process stderr is \n%s", stderr)
+                self.logger.info("The process stderr is \n%s", stderr)
         return errcode, stdout, stderr
 
+    def _get_logger(self):
+        """ return a correctly setup logger """
+        logger = logging.getLogger('nfofix')
+        logger.setLevel(logging.DEBUG)
+        ch = logging.StreamHandler()
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        ch.setFormatter(formatter)
+        ch.setLevel(logging.DEBUG)
+        logger.addHandler(ch)
+        return logger
+
+
 def run(helper):
+    logger = helper.logger
     helper.convert()
 
 
