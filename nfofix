@@ -7,7 +7,7 @@ import sys
 import argparse
 import json
 import zipfile
-#import xml.etree.ElementTree as ET
+# import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 
 # ffprobe -loglevel quiet -show_entries stream=index,codec_name,codec_type:stream_tags=language -i /tmp/toto.mkv
@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 
 class FfmpegHelper(object):
 
-    """ 
+    """
     """
 
     def __init__(self, input_file, output_dir='/tmp/dbg'):
@@ -25,6 +25,8 @@ class FfmpegHelper(object):
         self.ffprobe_command = 'ffprobe'
         self.ffprobe_data = None
         self.ffmpeg_command = 'ffmpeg'
+        self.genpts = False
+        self.packed_bframes = False
         self.verbose = False
 
     def set_verbose(self, verbose):
@@ -54,6 +56,21 @@ class FfmpegHelper(object):
         if self.verbose:
             self.logger.info(json.dumps(self.ffprobe_data, indent=4))
 
+    def _check_genpts(self):
+        command_line = [self.ffmpeg_command, '-hide_banner', '-y', '-v', 'error', '-i',
+                        self.input_file,  '-an', '-c:v', 'copy', '-f', 'matroska', '/dev/null']
+        errcode, stdout, stderr = self.call_process(
+            command_line, nolog=True, noerr=True)
+        if stderr.find('unknown timestamp'):
+            self.genpts = True
+
+    def _check_packed_bframes(self):
+        command_line = [self.ffmpeg_command, '-hide_banner', '-y',
+                        '-v', 'info', '-i', self.input_file, '-ss', '0', '-t', '1', '-an', '-c:v', 'mpeg4', '-f', 'null', '/dev/null']
+        errcode, stdout, stderr = self.call_process(command_line, nolog=True)
+        if stderr.find('mpeg4_unpack_bframes'):
+            self.packed_bframes = True
+
     def _check_info(self):
         # Technical limitation:
         nb_streams = self.ffprobe_data['format']['nb_streams']
@@ -72,7 +89,8 @@ class FfmpegHelper(object):
     def _convert(self, out_ext):
         filename, file_extension = os.path.splitext(self.input_file)
         command_line = [self.ffmpeg_command, '-hide_banner', '-y']
-        command_line.extend(['-fflags', '+genpts'])
+        if self.genpts:
+            command_line.extend(['-fflags', '+genpts'])
         command_line.extend(['-i', self.input_file])
         if not self.verbose:
             command_line.extend(['-v', 'error'])
@@ -85,12 +103,17 @@ class FfmpegHelper(object):
             ['-i', poster, '-disposition:v:1', 'attached_pic', '-map', '0', '-map', '1'])
         command_line.extend(['-map_metadata', '-1'])
         command_line.extend(['-metadata:s:a:0', 'language=fre'])
-        command_line.extend(['-metadata:s:a:0', 'title=toto'])
+        command_line.extend(['-metadata:s:a:0', 'title=audio title'])
+        command_line.extend(['-disposition:a:0', 'default'])
         command_line.extend(['-metadata:s:v:0', 'language=fre'])
+        command_line.extend(['-metadata:s:v:1', 'language=fre'])
+        command_line.extend(['-metadata:s:v:1', 'title=poster'])
         command_line.extend(['-metadata', 'title=%s' %
                              title, '-metadata', 'date=%s' % date])
         command_line.extend(['-c:a', 'copy'])
         command_line.extend(['-c:v', 'copy'])
+        if self.packed_bframes:
+            command_line.extend(['-bsf:v:0', 'mpeg4_unpack_bframes'])
         if out_ext == '.avi':
             command_line.extend(['-tag:v:0', 'xvid'])
         out_name = ' '.join(title.replace(
@@ -103,6 +126,8 @@ class FfmpegHelper(object):
     def convert(self):
         self._grab_info()
         self._check_info()
+        self._check_genpts()
+        self._check_packed_bframes()
         audio_stream = [stream for stream in self.ffprobe_data['streams']
                         if stream['codec_type'] == 'audio'][0]
         video_stream = [stream for stream in self.ffprobe_data['streams']
@@ -111,10 +136,10 @@ class FfmpegHelper(object):
         if format_name == 'avi':
             # convert to mkv for now
             self._convert('.mkv')
-            self._convert('.avi')
-            self._convert('.mp4')
+            # self._convert('.avi')
+            # self._convert('.mp4')
 
-    def call_process(self, command_line_list, env=None, nolog=False):
+    def call_process(self, command_line_list, env=None, nolog=False, noerr=False):
         """ Thin wrapper over subprocess.call with logging functionality """
         self.logger.info(
             "Preparing to subprocess.call an external process with "
@@ -133,7 +158,7 @@ class FfmpegHelper(object):
             stderr = stderr.decode("utf-8")
         binary = os.path.basename(command_line_list[0])
         errcode = process.returncode
-        if errcode:
+        if errcode and not noerr:
             self._raise_exception("Process %s exited with error code %d.\nThe process stdout is \n%s\nstderror is \n%s" % (
                 binary, errcode, stdout, stderr))
         else:
@@ -160,7 +185,7 @@ def run(helper):
 
 
 def main(args):
-    #helper = FfmpegHelper(args.input, args.output)
+    # helper = FfmpegHelper(args.input, args.output)
     helper = FfmpegHelper(args.input)
     helper.set_verbose(args.verbose)
     run(helper)
@@ -170,7 +195,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="ffmpeg + nfo")
     parser.add_argument("input", help='input movie')
-    #parser.add_argument("output", help='output folder')
+    # parser.add_argument("output", help='output folder')
     # verbose
     parser.add_argument("--verbose",
                         help="verbose output", action='store_true')
