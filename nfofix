@@ -69,6 +69,37 @@ class FfmpegHelper(object):
             self._raise_exception(
                 "Codec Types are Unhandled: %s" % codec_types)
 
+    def _convert(self, out_ext):
+        filename, file_extension = os.path.splitext(self.input_file)
+        command_line = [self.ffmpeg_command, '-hide_banner', '-y']
+        command_line.extend(['-fflags', '+genpts'])
+        command_line.extend(['-i', self.input_file])
+        if not self.verbose:
+            command_line.extend(['-v', 'error'])
+        title = self.nfo.title.string
+        date = self.nfo.year.string
+        # /tmp/ast/Asterix.Cesar-poster.jpg
+        poster = filename + '-poster.jpg'
+        # -i *Dumbo*poster* -disposition:v:1 attached_pic -map 0 -map 1
+        command_line.extend(
+            ['-i', poster, '-disposition:v:1', 'attached_pic', '-map', '0', '-map', '1'])
+        command_line.extend(['-map_metadata', '-1'])
+        command_line.extend(['-metadata:s:a:0', 'language=fre'])
+        command_line.extend(['-metadata:s:a:0', 'title=toto'])
+        command_line.extend(['-metadata:s:v:0', 'language=fre'])
+        command_line.extend(['-metadata', 'title=%s' %
+                             title, '-metadata', 'date=%s' % date])
+        command_line.extend(['-c:a', 'copy'])
+        command_line.extend(['-c:v', 'copy'])
+        if out_ext == '.avi':
+            command_line.extend(['-tag:v:0', 'xvid'])
+        out_name = ' '.join(title.replace(
+            ':', ' ').replace('/', ' ').split())
+        out_file = os.path.join(
+            self.output_dir, out_name + out_ext)
+        command_line.extend([out_file])
+        errcode, stdout, stderr = self.call_process(command_line)
+
     def convert(self):
         self._grab_info()
         self._check_info()
@@ -76,60 +107,12 @@ class FfmpegHelper(object):
                         if stream['codec_type'] == 'audio'][0]
         video_stream = [stream for stream in self.ffprobe_data['streams']
                         if stream['codec_type'] == 'video'][0]
-        filename, file_extension = os.path.splitext(self.input_file)
         format_name = self.ffprobe_data['format']['format_name']
         if format_name == 'avi':
             # convert to mkv for now
-            command_line = [self.ffmpeg_command, '-hide_banner', '-y']
-            command_line.extend(['-fflags', '+genpts'])
-            command_line.extend(['-i', self.input_file])
-            if not self.verbose:
-                command_line.extend(['-v', 'error'])
-            title = self.nfo.title.string
-            date = self.nfo.year.string
-            # /tmp/ast/Asterix.Cesar-poster.jpg
-            poster = filename + '-poster.jpg'
-            # -i *Dumbo*poster* -disposition:v:1 attached_pic -map 0 -map 1
-            command_line.extend(
-                ['-i', poster, '-disposition:v:1', 'attached_pic', '-map', '0', '-map', '1'])
-            command_line.extend(['-map_metadata', '-1'])
-            command_line.extend(['-metadata:s:a:0', 'language=fra'])
-            command_line.extend(['-metadata', 'title=%s' %
-                                 title, '-metadata', 'date=%s' % date])
-            command_line.extend(['-c:a', 'copy'])
-            command_line.extend(['-c:v', 'copy'])
-            mkv_name = ' '.join(title.replace(
-                ':', ' ').replace('/', ' ').split())
-            mkv_file = os.path.join(
-                self.output_dir, mkv_name + '.mkv')
-            command_line.extend([mkv_file])
-            errcode, stdout, stderr = self.call_process(command_line)
-
-            # convert to avi for now
-            command_line = [self.ffmpeg_command, '-hide_banner', '-y']
-            command_line.extend(['-fflags', '+genpts'])
-            command_line.extend(['-i', self.input_file])
-            if not self.verbose:
-                command_line.extend(['-v', 'error'])
-            title = self.nfo.title.string
-            date = self.nfo.year.string
-            # /tmp/ast/Asterix.Cesar-poster.jpg
-            poster = filename + '-poster.jpg'
-            # -i *Dumbo*poster* -disposition:v:1 attached_pic -map 0 -map 1
-            command_line.extend(
-                ['-i', poster, '-disposition:v:1', 'attached_pic', '-map', '0', '-map', '1'])
-            command_line.extend(['-map_metadata', '-1'])
-            command_line.extend(['-metadata:s:a:0', 'language=fra'])
-            command_line.extend(['-metadata', 'title=%s' %
-                                 title, '-metadata', 'date=%s' % date])
-            command_line.extend(['-c:a', 'copy'])
-            command_line.extend(['-c:v', 'copy', '-tag:v:0', 'xvid'])
-            avi_name = ' '.join(title.replace(
-                ':', ' ').replace('/', ' ').split())
-            avi_file = os.path.join(
-                self.output_dir, avi_name + '.avi')
-            command_line.extend([avi_file])
-            errcode, stdout, stderr = self.call_process(command_line)
+            self._convert('.mkv')
+            self._convert('.avi')
+            self._convert('.mp4')
 
     def call_process(self, command_line_list, env=None, nolog=False):
         """ Thin wrapper over subprocess.call with logging functionality """
