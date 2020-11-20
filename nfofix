@@ -58,7 +58,7 @@ class FfmpegHelper(object):
 
     def _check_genpts(self):
         command_line = [self.ffmpeg_command, '-hide_banner', '-y', '-v', 'error', '-i',
-                        self.input_file,  '-an', '-c:v', 'copy', '-f', 'matroska', '/dev/null']
+                        self.input_file, '-ss', '0', '-t', '1', '-an', '-c:v', 'copy', '-f', 'matroska', '/dev/null']
         errcode, stdout, stderr = self.call_process(
             command_line, nolog=True, noerr=True)
         if 'unknown timestamp' in stderr:
@@ -101,7 +101,9 @@ class FfmpegHelper(object):
         # -i *Dumbo*poster* -disposition:v:1 attached_pic -map 0 -map 1
         command_line.extend(
             ['-i', poster, '-disposition:v:1', 'attached_pic', '-map', '0', '-map', '1'])
-        command_line.extend(['-map_metadata', '-1'])
+        command_line.extend(['-map_metadata', '0'])
+        command_line.extend(['-map_metadata:s:v:0', '-1'])
+        command_line.extend(['-map_chapters', '0'])
         command_line.extend(['-metadata:s:a:0', 'language=fre'])
         command_line.extend(['-metadata:s:a:0', 'title=audio title'])
         command_line.extend(['-disposition:a:0', 'default'])
@@ -138,6 +140,9 @@ class FfmpegHelper(object):
             self._convert('.mkv')
             # self._convert('.avi')
             # self._convert('.mp4')
+        elif format_name == 'matroska,webm':
+            # convert to mkv for now
+            self._convert('.mkv')
 
     def call_process(self, command_line_list, env=None, nolog=False, noerr=False):
         """ Thin wrapper over subprocess.call with logging functionality """
