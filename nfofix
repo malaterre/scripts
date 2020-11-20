@@ -118,6 +118,10 @@ class FfmpegHelper(object):
             command_line.extend(['-bsf:v:0', 'mpeg4_unpack_bframes'])
         if out_ext == '.avi':
             command_line.extend(['-tag:v:0', 'xvid'])
+        if out_ext == '.mp4':
+            command_line.extend(['-movflags', '+faststart'])
+        # man 8 ntfs-3g => windows_name
+        # The forbidden characters are the nine characters " * / : < > ? \ |
         out_name = ' '.join(title.replace(
             ':', ' ').replace('/', ' ').split())
         out_file = os.path.join(
@@ -135,12 +139,15 @@ class FfmpegHelper(object):
         video_stream = [stream for stream in self.ffprobe_data['streams']
                         if stream['codec_type'] == 'video'][0]
         format_name = self.ffprobe_data['format']['format_name']
-        if format_name == 'avi':
-            # convert to mkv for now
-            self._convert('.mkv')
-            # self._convert('.avi')
-            # self._convert('.mp4')
-        elif format_name == 'matroska,webm':
+        #print(audio_stream)
+        #print(video_stream)
+        #print(format_name)
+        #return
+        if audio_stream['codec_name'] == 'aac' and video_stream['codec_name'] == 'h264':
+            assert format_name == 'mov,mp4,m4a,3gp,3g2,mj2'
+            self._convert('.mp4')
+        else:
+            assert format_name == 'matroska,webm' or format_name == 'avi'
             # convert to mkv for now
             self._convert('.mkv')
 
@@ -200,7 +207,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="ffmpeg + nfo")
     parser.add_argument("input", help='input movie')
-    # parser.add_argument("output", help='output folder')
+    parser.add_argument('output', nargs='?', default='/tmp/dbg', help='output dir')
     # verbose
     parser.add_argument("--verbose",
                         help="verbose output", action='store_true')
