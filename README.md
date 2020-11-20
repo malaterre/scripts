@@ -4,7 +4,8 @@ Convert video for Freebox Mini 4K
 
 So far only mkv and mp4 container seems to work
 
-|       | ac3 | aac |
-|-------|-----|-----|
-| mpeg4 | mkv |     |
-| h.264 |     | mp4 |
+|       |   aac   | ac3 | mp3 |
+|-------|---------|-----|-----|
+| h264  | mp4/mkv |     |     |
+| mjpeg |         | mkv | mkv |
+| mpeg4 |         | mkv | mkv |
