@@ -6,5 +6,5 @@ So far only mkv and mp4 container seems to work
 
 |       | ac3 | aac |
 |-------|-----|-----|
-| mpeg4 | mkv | mp4 |
-| h.264 |     |     |
+| mpeg4 | mkv |     |
+| h.264 |     | mp4 |
