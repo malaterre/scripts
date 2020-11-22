@@ -96,7 +96,7 @@ class FfmpegHelper(object):
         command_line.extend(['-i', self.input_file])
         title = self.nfo.title.string
         date = self.nfo.year.string
-        # /tmp/ast/Asterix.Cesar-poster.jpg
+        # Asterix.Cesar-poster.jpg
         poster = filename + '-poster.jpg'
         # -i *Dumbo*poster* -disposition:v:1 attached_pic -map 0 -map 1
         command_line.extend(
@@ -122,8 +122,12 @@ class FfmpegHelper(object):
             command_line.extend(['-movflags', '+faststart'])
         # man 8 ntfs-3g => windows_name
         # The forbidden characters are the nine characters " * / : < > ? \ |
-        out_name = ' '.join(title.replace(
-            ':', ' ').replace('/', ' ').split())
+        # ” ‹ › ⁎ ∕ ⑊ ＼︖ ꞉ ⏐
+        forbidden_characters = '"*/:<>?\|'
+        unicode_characters = '”⁎∕꞉‹›︖＼⏐'
+        out_name = title.replace(' ', ' ')  # FIXME string copy
+        for a, b in zip(forbidden_characters, unicode_characters):
+            out_name = out_name.replace(a, b)
         out_file = os.path.join(
             self.output_dir, out_name + out_ext)
         command_line.extend([out_file])
@@ -139,13 +143,16 @@ class FfmpegHelper(object):
         video_stream = [stream for stream in self.ffprobe_data['streams']
                         if stream['codec_type'] == 'video'][0]
         format_name = self.ffprobe_data['format']['format_name']
-        #print(audio_stream)
-        #print(video_stream)
-        #print(format_name)
-        #return
+        # print(audio_stream)
+        # print(video_stream)
+        # print(format_name)
+        # return
         if audio_stream['codec_name'] == 'aac' and video_stream['codec_name'] == 'h264':
-            assert format_name == 'mov,mp4,m4a,3gp,3g2,mj2'
-            self._convert('.mp4')
+            if format_name == 'matroska,webm':
+                self._convert('.mp4')
+            else:
+                assert format_name == 'mov,mp4,m4a,3gp,3g2,mj2'
+                self._convert('.mp4')
         else:
             assert format_name == 'matroska,webm' or format_name == 'avi'
             # convert to mkv for now
@@ -207,7 +214,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="ffmpeg + nfo")
     parser.add_argument("input", help='input movie')
-    parser.add_argument('output', nargs='?', default='/tmp/dbg', help='output dir')
+    parser.add_argument('output', nargs='?',
+                        default='/tmp/dbg', help='output dir')
     # verbose
     parser.add_argument("--verbose",
                         help="verbose output", action='store_true')
