@@ -73,17 +73,17 @@ class FfmpegHelper(object):
     def _check_info(self):
         # Technical limitation:
         nb_streams = self.ffprobe_data['format']['nb_streams']
-        if nb_streams != 1 and nb_streams != 2:
+        if nb_streams == 2:
             self._raise_exception(
                 "Invalid nb_streams value: %d" % nb_streams)
 
-        # single stream, should be video:
-        codec_type = self.ffprobe_data['streams'][0]['codec_type']
-        codec_types = sorted([stream['codec_type']
-                              for stream in self.ffprobe_data['streams']])
-        if codec_types != ['video'] and ['audio', 'video'] != codec_types:
-            self._raise_exception(
-                "Codec Types are Unhandled: %s" % codec_types)
+            # simple case: check audio + video:
+            codec_type = self.ffprobe_data['streams'][0]['codec_type']
+            codec_types = sorted([stream['codec_type']
+                                  for stream in self.ffprobe_data['streams']])
+            if codec_types != ['video'] and ['audio', 'video'] != codec_types:
+                self._raise_exception(
+                    "Codec Types are Unhandled: %s" % codec_types)
 
     def _convert(self, out_ext):
         filename, file_extension = os.path.splitext(self.input_file)
