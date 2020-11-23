@@ -88,9 +88,6 @@ class FfmpegHelper(object):
         # Technical limitation:
         nb_streams = self.ffprobe_data['format']['nb_streams']
         if nb_streams == 2:
-            self._raise_exception(
-                "Invalid nb_streams value: %d" % nb_streams)
-
             # simple case: check audio + video:
             codec_type = self.ffprobe_data['streams'][0]['codec_type']
             codec_types = sorted([stream['codec_type']
@@ -128,14 +125,21 @@ class FfmpegHelper(object):
         if self.simple_case:
             # remove stuff from mkv editor
             command_line.extend(['-map_metadata:s:v:0', '-1'])
-        if 'tags' in video_stream and 'language' in video_stream['tags']:
-            assert video_stream['tags']['language'] == 'fre'
-        else:
-            # set language
-            command_line.extend(['-metadata:s:v:0', 'language=fre'])
+        # if 'tags' in video_stream and 'language' in video_stream['tags']:
+        #    assert video_stream['tags']['language'] == 'fre'
+        # else:
+        # set video language always:
+        command_line.extend(['-metadata:s:v:0', 'language=fre'])
         if len(audio_streams) == 1:
+            audio_stream = audio_streams[0]
             command_line.extend(['-metadata:s:a:0', 'language=fre'])
-            command_line.extend(['-metadata:s:a:0', 'title=audio title'])
+            if audio_stream['codec_name'] == 'aac':
+                command_line.extend(['-metadata:s:a:0', 'title=Stereo'])
+            elif audio_stream['codec_name'] == 'ac3':
+                command_line.extend(['-metadata:s:a:0', 'title=Surround'])
+            else:
+                command_line.extend(
+                    ['-metadata:s:a:0', 'title=stereo %s' % audio_stream['codec_name']])
             command_line.extend(['-disposition:a:0', 'default'])
         else:
             for audio_stream in audio_streams:
