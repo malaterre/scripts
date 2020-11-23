@@ -179,18 +179,19 @@ class FfmpegHelper(object):
         self._check_genpts()
         self._check_packed_bframes()
         format_name = self.ffprobe_data['format']['format_name']
-        # print(audio_stream)
-        # print(video_stream)
-        # print(format_name)
-        # return
-        if self.simple_case and audio_stream['codec_name'] == 'aac' and video_stream['codec_name'] == 'h264':
-            if format_name == 'matroska,webm':
-                self._convert('.mp4')
+        if self.simple_case:
+            if audio_stream['codec_name'] == 'aac' and video_stream['codec_name'] == 'h264':
+                if format_name == 'matroska,webm':
+                    self._convert('.mp4')
+                else:
+                    assert format_name == 'mov,mp4,m4a,3gp,3g2,mj2'
+                    self._convert('.mp4')
             else:
-                assert format_name == 'mov,mp4,m4a,3gp,3g2,mj2'
-                self._convert('.mp4')
+                assert format_name == 'matroska,webm' or format_name == 'avi'
+                # Convert to mkv for now
+                self._convert('.mkv')
         else:
-            assert format_name == 'matroska,webm' or format_name == 'avi'
+            assert format_name == 'matroska,webm'
             # all complex cases (eg. with subtitles) are handled by mkv container
             self._convert('.mkv')
 
