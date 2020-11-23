@@ -17,3 +17,15 @@ TODO:
 * mp4 a voir si on peut mettre un titre (affiché avec ``` à l'écran)
 * Impossible d'afficher la vignette contenu en stream #1...a voir si ca marche en stream #0...pas mieux mini4k ne semble pas supporté les vignettes
 * mkv -> mp4 ass subtitle pas supporté, voir : ffmpeg -i input.mkv -c copy -c:s mov_text output.mp4
+
+Sous-titres:
+
+impossible de faire marcher:
+
+ ffmpeg -y -i input.mkv -map 0 -c copy -c:s mov_text -tag:s:s:0 tx3g output_1.mp4
+ ffmpeg -y -i input.mkv -map 0 -c copy -c:s mov_text -tag:s:s:0 tx3g output_2.mov
+ ffmpeg -y -i input.mkv -map 0 -c copy -c:s mov_text                 output_3.mp4
+ ffmpeg -y -i input.mkv -map 0 -c copy -c:s mov_text                 output_4.mov
+
+
+sous-titres => mkv seulement
