@@ -6,8 +6,6 @@ import os
 import sys
 import argparse
 import json
-import zipfile
-# import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 
 # ffprobe -loglevel quiet -show_entries stream=index,codec_name,codec_type:stream_tags=language -i /tmp/toto.mkv
@@ -28,6 +26,7 @@ class FfmpegHelper(object):
         self.genpts = False
         self.packed_bframes = False
         self.verbose = False
+        self.windows_ntfs = False
 
     def set_verbose(self, verbose):
         self.verbose = verbose
@@ -120,14 +119,15 @@ class FfmpegHelper(object):
             command_line.extend(['-tag:v:0', 'xvid'])
         if out_ext == '.mp4':
             command_line.extend(['-movflags', '+faststart'])
-        # man 8 ntfs-3g => windows_name
-        # The forbidden characters are the nine characters " * / : < > ? \ |
-        # ” ‹ › ⁎ ∕ ⑊ ＼︖ ꞉ ⏐
-        forbidden_characters = '"*/:<>?\|'
-        unicode_characters = '”⁎∕꞉‹›︖＼⏐'
         out_name = title.replace(' ', ' ')  # FIXME string copy
-        for a, b in zip(forbidden_characters, unicode_characters):
-            out_name = out_name.replace(a, b)
+        if self.windows_ntfs:
+            # man 8 ntfs-3g => windows_name
+            # The forbidden characters are the nine characters " * / : < > ? \ |
+            # ” ‹ › ⁎ ∕ ＼︖ ꞉ ⏐
+            forbidden_characters = '"*/:<>?\|'
+            unicode_characters = '”⁎∕꞉‹›︖＼⏐'
+            for a, b in zip(forbidden_characters, unicode_characters):
+                out_name = out_name.replace(a, b)
         out_file = os.path.join(
             self.output_dir, out_name + out_ext)
         command_line.extend([out_file])
