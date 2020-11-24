@@ -75,6 +75,13 @@ class FfmpegHelper(object):
                 command_line, nolog=True)
             if 'mpeg4_unpack_bframes' in stderr:
                 self.packed_bframes = True
+        elif video_stream['codec_name'] == 'msmpeg4v3':
+            # https://trac.ffmpeg.org/wiki/Encode/MPEG-4
+            # Duration: 01:24:22.87, start: 0.000000, bitrate: 1082 kb/s
+            # ffmpeg -y -i input.avi -c:v mpeg4 -vtag xvid -b:v 1082k -pass 1 -an -f avi /dev/null
+            # ffmpeg -y -i input.avi -c:v mpeg4 -vtag xvid -b:v 1082k -pass 2 -c:a copy output.avi
+            self._raise_exception(
+                "Convert your video to mpeg4 first")
         else:
             assert video_stream['codec_name'] == 'h264' or video_stream['codec_name'] == 'mjpeg'
 
@@ -118,7 +125,7 @@ class FfmpegHelper(object):
         # -i *Dumbo*poster* -disposition:v:1 attached_pic -map 0 -map 1
         command_line.extend(
             ['-i', poster, '-disposition:v:1', 'attached_pic', '-map', '0', '-map', '1'])
-        command_line.extend(['-metadata:s:v:1', 'title=poster'])
+        command_line.extend(['-metadata:s:v:1', 'title=Poster'])
         command_line.extend(['-metadata:s:v:1', 'language=fre'])
         command_line.extend(['-map_chapters', '0'])
         command_line.extend(['-map_metadata', '0'])
@@ -139,7 +146,7 @@ class FfmpegHelper(object):
                 command_line.extend(['-metadata:s:a:0', 'title=Surround'])
             else:
                 command_line.extend(
-                    ['-metadata:s:a:0', 'title=stereo %s' % audio_stream['codec_name']])
+                    ['-metadata:s:a:0', 'title=Stereo %s' % audio_stream['codec_name']])
             command_line.extend(['-disposition:a:0', 'default'])
         else:
             for audio_stream in audio_streams:
