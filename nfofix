@@ -210,9 +210,8 @@ class FfmpegHelper(object):
         """ Thin wrapper over subprocess.call with logging functionality """
         self.logger.info(
             "Preparing to subprocess.call an external process with "
-            "the following command line: %s ( %s )",
-            command_line_list,
-            " ".join(command_line_list))
+            "the following command line: \n%s",
+            ' '.join("'{0}'".format(w) for w in command_line_list))
         process = subprocess.Popen(command_line_list,
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
