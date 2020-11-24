@@ -34,8 +34,8 @@ class FfmpegHelper(object):
         self.verbose = verbose
 
     def _raise_exception(self, message):
-        if bool(self.nfo):
-            self.logger.error(self.nfo.prettify())
+        # if bool(self.nfo):
+        #     self.logger.error(self.nfo.prettify())
         if bool(self.ffprobe_data):
             self.logger.error(json.dumps(self.ffprobe_data, indent=4))
         self.logger.error(message)
