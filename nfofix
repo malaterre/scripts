@@ -129,12 +129,8 @@ class FfmpegHelper(object):
         command_line.extend(['-metadata:s:v:1', 'language=fre'])
         command_line.extend(['-map_chapters', '0'])
         command_line.extend(['-map_metadata', '0'])
-        if self.simple_case:
-            # remove stuff from mkv editor
-            command_line.extend(['-map_metadata:s:v:0', '-1'])
-        # if 'tags' in video_stream and 'language' in video_stream['tags']:
-        #    assert video_stream['tags']['language'] == 'fre'
-        # else:
+        # remove stuff from mkv editor
+        command_line.extend(['-map_metadata:s:v:0', '-1'])
         # set video language always:
         command_line.extend(['-metadata:s:v:0', 'language=fre'])
         if len(audio_streams) == 1:
