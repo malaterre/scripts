@@ -75,13 +75,13 @@ class FfmpegHelper(object):
                 command_line, nolog=True)
             if 'mpeg4_unpack_bframes' in stderr:
                 self.packed_bframes = True
-        elif video_stream['codec_name'] == 'msmpeg4v3':
-            # https://trac.ffmpeg.org/wiki/Encode/MPEG-4
-            # Duration: 01:24:22.87, start: 0.000000, bitrate: 1082 kb/s
-            # ffmpeg -y -i input.avi -c:v mpeg4 -vtag xvid -b:v 1082k -pass 1 -an -f avi /dev/null
-            # ffmpeg -y -i input.avi -c:v mpeg4 -vtag xvid -b:v 1082k -pass 2 -c:a copy output.avi
-            self._raise_exception(
-                "Convert your video to mpeg4 first")
+        # elif video_stream['codec_name'] == 'msmpeg4v3':
+        #    # https://trac.ffmpeg.org/wiki/Encode/MPEG-4
+        #    # Duration: 01:24:22.87, start: 0.000000, bitrate: 1082 kb/s
+        #    # ffmpeg -y -i input.avi -c:v mpeg4 -vtag xvid -b:v 1082k -pass 1 -an -f avi /dev/null
+        #    # ffmpeg -y -i input.avi -c:v mpeg4 -vtag xvid -b:v 1082k -pass 2 -c:a copy output.avi
+        #    self._raise_exception(
+        #        "Convert your video to mpeg4 first")
         else:
             assert video_stream['codec_name'] == 'h264' or video_stream['codec_name'] == 'mjpeg'
 
@@ -91,6 +91,22 @@ class FfmpegHelper(object):
         if len(video_streams) > 1:
             self._raise_exception(
                 "Invalid video streams value %d" % len(video_streams))
+        video_stream = video_streams[0]
+        if video_stream['codec_name'] == 'msmpeg4v3':
+            assert self.ffprobe_data['format_name'] == 'avi'
+            assert self.ffprobe_data['format']['nb_streams'] == 2
+            bit_rate = video_stream['bit_rate']
+            command_line = [self.ffmpeg_command, '-hide_banner', '-y', '-i', self.input_file, '-c:v', 'mpeg4',
+                            '-vtag', 'xvid', '-b:v', bit_rate, '-pass', '1',  '-an', '-f', 'avi',  '/dev/null']
+            errcode, stdout, stderr = self.call_process(
+                command_line, nolog=True)
+            command_line = [self.ffmpeg_command, '-hide_banner', '-i', self.input_file, '-c:v',  'mpeg4',
+                            '-vtag', 'xvid', '-b:v', bit_rate,  '-pass', '2', '-c:a', 'copy', '/tmp/mpeg4.avi']
+            errcode, stdout, stderr = self.call_process(
+                command_line, nolog=True)
+            return
+
+        assert video_stream["pix_fmt"] == "yuv420p"
 
         # Technical limitation:
         nb_streams = self.ffprobe_data['format']['nb_streams']
@@ -194,7 +210,7 @@ class FfmpegHelper(object):
                     assert format_name == 'mov,mp4,m4a,3gp,3g2,mj2'
                     self._convert('.mp4')
             else:
-                assert format_name == 'matroska,webm' or format_name == 'avi'
+                assert format_name == 'matroska,webm' or format_name == 'avi' or format_name == 'mov,mp4,m4a,3gp,3g2,mj2'
                 # Convert to mkv for now
                 self._convert('.mkv')
         else:
@@ -207,7 +223,7 @@ class FfmpegHelper(object):
         self.logger.info(
             "Preparing to subprocess.call an external process with "
             "the following command line: \n%s",
-            ' '.join("'{0}'".format(w) for w in command_line_list))
+            ' '.join('"{0}"'.format(w) for w in command_line_list))
         process = subprocess.Popen(command_line_list,
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
