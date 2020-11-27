@@ -140,7 +140,8 @@ class FfmpegHelper(object):
             self._raise_exception(
                 "Re-inject fixed movie %s" % fixed_movie)
 
-        assert video_stream["pix_fmt"] == "yuv420p" # FIXME Both RPI2b would crash and mini4k would display balck screen on a pix_fmt 'yuv420p10le'
+        # FIXME Both RPI2b would crash and mini4k would display balck screen on a pix_fmt 'yuv420p10le'
+        assert video_stream["pix_fmt"] == "yuv420p"
 
         # Technical limitation:
         nb_streams = self.ffprobe_data['format']['nb_streams']
@@ -231,7 +232,8 @@ class FfmpegHelper(object):
                          if warnline.startswith('[')]
             warnsigs = set()
             for warnline in warnlines:
-                warnsig = warnline[0:79]
+                # '[mp4 @ 0x55610560fa00] Non-monotonous DTS in output stream 0:1; previous: '
+                warnsig = warnline[0:74]
                 if not warnsig in warnsigs:
                     self.logger.warning("The process stderr is %s", warnline)
                     warnsigs.add(warnsig)
