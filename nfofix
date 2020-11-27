@@ -100,6 +100,8 @@ class FfmpegHelper(object):
                                     '-v', 'info', '-i', self.input_file, '-ss', '0', '-t', '1', '-an', '-sn', '-c:v', 'mpeg4', '-enc_time_base', '-1', '-vsync', '2', '-f', 'null', '/dev/null']
                     errcode, stdout, stderr = self.call_process(
                         command_line, nolog=True)
+                    self._raise_exception(
+                        "Fix your movie first")
                 else:
                     self._raise_exception(
                         "Fix your movie first")
@@ -138,7 +140,7 @@ class FfmpegHelper(object):
             self._raise_exception(
                 "Re-inject fixed movie %s" % fixed_movie)
 
-        assert video_stream["pix_fmt"] == "yuv420p"
+        assert video_stream["pix_fmt"] == "yuv420p" # FIXME Both RPI2b would crash and mini4k would display balck screen on a pix_fmt 'yuv420p10le'
 
         # Technical limitation:
         nb_streams = self.ffprobe_data['format']['nb_streams']
