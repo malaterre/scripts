@@ -29,6 +29,7 @@ class FfmpegHelper(object):
         self.verbose = False
         self.windows_ntfs = False
         self.simple_case = False
+        self.opendivx = False
 
     def set_verbose(self, verbose):
         self.verbose = verbose
@@ -105,7 +106,10 @@ class FfmpegHelper(object):
                 else:
                     self._raise_exception(
                         "Fix your movie first")
-            if 'mpeg4_unpack_bframes' in stderr:
+            # looks like this file was encoded with (divx4/(old)xvid/opendivx)
+            if 'opendivx' in stderr:
+                self.opendivx = True
+            elif 'mpeg4_unpack_bframes' in stderr:
                 self.packed_bframes = True
         # elif video_stream['codec_name'] == 'msmpeg4v3':
         #    # https://trac.ffmpeg.org/wiki/Encode/MPEG-4
@@ -120,10 +124,33 @@ class FfmpegHelper(object):
     def _check_info(self):
         video_streams = [stream for stream in self.ffprobe_data['streams']
                          if stream['codec_type'] == 'video']
+        audio_streams = [stream for stream in self.ffprobe_data['streams']
+                         if stream['codec_type'] == 'audio']
         if len(video_streams) > 1:
             self._raise_exception(
                 "Invalid video streams value %d" % len(video_streams))
         video_stream = video_streams[0]
+        if self.opendivx:
+            assert self.ffprobe_data['format']['format_name'] == 'avi'
+            assert self.ffprobe_data['format']['nb_streams'] == 2
+            bit_rate = video_stream['bit_rate']
+            assert len(audio_streams) == 1
+            audio_stream = audio_streams[0]
+            bit_rate_audio = audio_stream['bit_rate']
+            # self.logger.info("bit_rate_audio: %s" % bit_rate_audio)
+            assert int(bit_rate_audio) < 128000
+            # ffmpeg -y -i input.avi -c:v libx264 -b:v 1264k -pass 1 -an -f null /dev/null && \
+            # ffmpeg -i input.avi -c:v libx264 -b:v 1264k -pass 2 -c:a aac -b:a 128k output.mp4
+            command_line = [self.ffmpeg_command, '-hide_banner', '-y',
+                            '-v', 'info', '-i', self.input_file, '-c:v', 'libx264', '-b:v', bit_rate, '-pass', '1', '-an', '-f', 'null', '/dev/null']
+            errcode, stdout, stderr = self.call_process(
+                command_line, nolog=True)
+            command_line = [self.ffmpeg_command, '-hide_banner', '-y', '-v', 'info', '-i', self.input_file, '-c:v', 'libx264',
+                            '-b:v', bit_rate, '-pass', '2', '-c:a', 'aac', '-b:a', '128k', '/tmp/fixed.mp4']
+            errcode, stdout, stderr = self.call_process(
+                command_line, nolog=True)
+            self._raise_exception(
+                "Fix your movie first")
         if video_stream['codec_name'] == 'msmpeg4v3':
             assert self.ffprobe_data['format']['format_name'] == 'avi'
             assert self.ffprobe_data['format']['nb_streams'] == 2
@@ -240,13 +267,13 @@ class FfmpegHelper(object):
 
     def convert(self):
         self._grab_info()
-        self._check_info()
         audio_stream = [stream for stream in self.ffprobe_data['streams']
                         if stream['codec_type'] == 'audio'][0]
         video_stream = [stream for stream in self.ffprobe_data['streams']
                         if stream['codec_type'] == 'video'][0]
         self._check_genpts()
         self._check_packed_bframes()
+        self._check_info()
         format_name = self.ffprobe_data['format']['format_name']
         if self.simple_case:
             if audio_stream['codec_name'] == 'aac' and video_stream['codec_name'] == 'h264':
