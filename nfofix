@@ -11,6 +11,8 @@ from datetime import datetime
 
 # ffprobe -loglevel quiet -show_entries stream=index,codec_name,codec_type:stream_tags=language -i /tmp/toto.mkv
 
+# [avi @ 0x55ad16296b40] Switching to NI mode, due to poor interleaving
+# => seems to dispear anyway when copy(ing to mkv
 
 class FfmpegHelper(object):
 
