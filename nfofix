@@ -30,9 +30,13 @@ class FfmpegHelper(object):
         self.windows_ntfs = False
         self.simple_case = False
         self.opendivx = False
+        self.lang = 'fre'
 
     def set_verbose(self, verbose):
         self.verbose = verbose
+
+    def set_lang(self, lang):
+        self.lang = lang
 
     def _raise_exception(self, message):
         # if bool(self.nfo):
@@ -82,7 +86,7 @@ class FfmpegHelper(object):
             command_line = [self.ffmpeg_command, '-hide_banner', '-y', '-i', self.input_file, '-i',
                             fixed_mp3, '-c:v', 'copy', '-c:a', 'copy', '-map', '0:v:0', '-map',  '1:a:0', fixed_movie]
             errcode, stdout, stderr = self.call_process(
-                command_line, nolog=True)
+                command_line, nolog=not self.verbose)
             self._raise_exception(
                 "Re-inject fixed movie %s" % fixed_movie)
 
@@ -100,7 +104,7 @@ class FfmpegHelper(object):
                     command_line = [self.ffmpeg_command, '-hide_banner', '-y',
                                     '-v', 'info', '-i', self.input_file, '-ss', '0', '-t', '1', '-an', '-sn', '-c:v', 'mpeg4', '-enc_time_base', '-1', '-vsync', '2', '-f', 'null', '/dev/null']
                     errcode, stdout, stderr = self.call_process(
-                        command_line, nolog=True)
+                        command_line, nolog=not self.verbose)
                     self._raise_exception(
                         "Fix your movie first")
                 else:
@@ -138,7 +142,7 @@ class FfmpegHelper(object):
             audio_stream = audio_streams[0]
             bit_rate_audio = audio_stream['bit_rate']
             # self.logger.info("bit_rate_audio: %s" % bit_rate_audio)
-            assert int(bit_rate_audio) < 128000
+            assert int(bit_rate_audio) <= 128000
             # ffmpeg -y -i input.avi -c:v libx264 -b:v 1264k -pass 1 -an -f null /dev/null && \
             # ffmpeg -i input.avi -c:v libx264 -b:v 1264k -pass 2 -c:a aac -b:a 128k output.mp4
             command_line = [self.ffmpeg_command, '-hide_banner', '-y',
@@ -148,7 +152,7 @@ class FfmpegHelper(object):
             command_line = [self.ffmpeg_command, '-hide_banner', '-y', '-v', 'info', '-i', self.input_file, '-c:v', 'libx264',
                             '-b:v', bit_rate, '-pass', '2', '-c:a', 'aac', '-b:a', '128k', '/tmp/fixed.mp4']
             errcode, stdout, stderr = self.call_process(
-                command_line, nolog=True)
+                command_line, nolog=not self.verbose)
             self._raise_exception(
                 "Fix your movie first")
         if video_stream['codec_name'] == 'msmpeg4v3':
@@ -163,7 +167,7 @@ class FfmpegHelper(object):
             command_line = [self.ffmpeg_command, '-hide_banner', '-y', '-i', self.input_file, '-c:v',  'mpeg4',
                             '-vtag', 'xvid', '-b:v', bit_rate,  '-pass', '2', '-c:a', 'copy', fixed_movie]
             errcode, stdout, stderr = self.call_process(
-                command_line, nolog=True)
+                command_line, nolog=not self.verbose)
             self._raise_exception(
                 "Re-inject fixed movie %s" % fixed_movie)
 
@@ -204,16 +208,16 @@ class FfmpegHelper(object):
         command_line.extend(
             ['-i', poster, '-disposition:v:1', 'attached_pic', '-map', '0', '-map', '1'])
         command_line.extend(['-metadata:s:v:1', 'title=Poster'])
-        command_line.extend(['-metadata:s:v:1', 'language=fre'])
+        command_line.extend(['-metadata:s:v:1', 'language=%s' % self.lang])
         command_line.extend(['-map_chapters', '0'])
         command_line.extend(['-map_metadata', '0'])
         # remove stuff from mkv editor
         command_line.extend(['-map_metadata:s:v:0', '-1'])
         # set video language always:
-        command_line.extend(['-metadata:s:v:0', 'language=fre'])
+        command_line.extend(['-metadata:s:v:0', 'language=%s' % self.lang])
         if len(audio_streams) == 1:
             audio_stream = audio_streams[0]
-            command_line.extend(['-metadata:s:a:0', 'language=fre'])
+            command_line.extend(['-metadata:s:a:0', 'language=%s' % self.lang])
             if audio_stream['codec_name'] == 'aac':
                 command_line.extend(['-metadata:s:a:0', 'title=Stereo'])
             elif audio_stream['codec_name'] == 'ac3':
@@ -338,6 +342,7 @@ def run(helper):
 def main(args):
     # helper = FfmpegHelper(args.input, args.output)
     helper = FfmpegHelper(args.input)
+    helper.set_lang(args.lang)
     helper.set_verbose(args.verbose)
     run(helper)
 
@@ -348,6 +353,8 @@ if __name__ == "__main__":
     parser.add_argument("input", help='input movie')
     parser.add_argument('output', nargs='?',
                         default='/tmp/dbg', help='output dir')
+    parser.add_argument('--lang', nargs='?',
+                        default='fre', help='lang')
     # verbose
     parser.add_argument("--verbose",
                         help="verbose output", action='store_true')
