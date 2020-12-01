@@ -14,6 +14,7 @@ from datetime import datetime
 # [avi @ 0x55ad16296b40] Switching to NI mode, due to poor interleaving
 # => seems to dispear anyway when copy(ing to mkv
 
+
 class FfmpegHelper(object):
 
     """
@@ -193,6 +194,8 @@ class FfmpegHelper(object):
                         if stream['codec_type'] == 'video'][0]
         audio_streams = [stream for stream in self.ffprobe_data['streams']
                          if stream['codec_type'] == 'audio']
+        subtitle_streams = [stream for stream in self.ffprobe_data['streams']
+                            if stream['codec_type'] == 'subtitle']
         #self.logger.info(json.dumps(audio_streams, indent=4))
         # return
         filename, file_extension = os.path.splitext(self.input_file)
@@ -211,32 +214,60 @@ class FfmpegHelper(object):
             ['-i', poster, '-disposition:v:1', 'attached_pic', '-map', '0', '-map', '1'])
         command_line.extend(['-metadata:s:v:1', 'title=Poster'])
         command_line.extend(['-metadata:s:v:1', 'language=%s' % self.lang])
+        # preserve all metadata attached to chapter
         command_line.extend(['-map_chapters', '0'])
-        command_line.extend(['-map_metadata', '0'])
-        # remove stuff from mkv editor
+        # remove metadata attached to video (mostly for mkv, eg. NUMBER_OF_BYTES-eng...)
         command_line.extend(['-map_metadata:s:v:0', '-1'])
         # set video language always:
         command_line.extend(['-metadata:s:v:0', 'language=%s' % self.lang])
+        command_line.extend(
+            ['-metadata:s:v:0', 'title=%s' % title])  # why not ?
+        command_line.extend(['-metadata:s:v:0', 'date=%s' % date])  # why not ?
         if len(audio_streams) == 1:
             audio_stream = audio_streams[0]
+            if 'tags' in audio_stream and 'language' in audio_stream['tags']:
+                assert audio_stream['tags']['language'] == 'fre' or audio_stream['tags']['language'] == 'und'
+            command_line.extend(['-map_metadata:s:a:0', '-1'])
             command_line.extend(['-metadata:s:a:0', 'language=%s' % self.lang])
-            if audio_stream['codec_name'] == 'aac':
-                command_line.extend(['-metadata:s:a:0', 'title=Stereo'])
-            elif audio_stream['codec_name'] == 'ac3':
-                command_line.extend(['-metadata:s:a:0', 'title=Surround'])
+            # title is garbage most of the time anyway
+            if 'tags' in audio_stream and 'title' in audio_stream['tags'] and False:
+                atitle = audio_stream['tags']['title']
+                command_line.extend(['-metadata:s:a:0', 'title=%s' % atitle])
             else:
-                command_line.extend(
-                    ['-metadata:s:a:0', 'title=Stereo %s' % audio_stream['codec_name']])
+                if audio_stream['codec_name'] == 'aac':
+                    command_line.extend(['-metadata:s:a:0', 'title=Stereo'])
+                elif audio_stream['codec_name'] == 'ac3':
+                    command_line.extend(['-metadata:s:a:0', 'title=Surround'])
+                else:
+                    command_line.extend(
+                        ['-metadata:s:a:0', 'title=Stereo %s' % audio_stream['codec_name']])
             command_line.extend(['-disposition:a:0', 'default'])
         else:
             for audio_stream in audio_streams:
+                index = audio_stream['index']
                 assert audio_stream['tags']['language'] == 'fre' or audio_stream['tags']['language'] == 'eng'
-        command_line.extend(['-metadata', 'title=%s' %
-                             title, '-metadata', 'date=%s' % date])
+                command_line.extend(['-map_metadata:s:%s' % index, '-1'])
+                if 'title' in audio_stream['tags']:
+                    atitle = audio_stream['tags']['title']
+                    command_line.extend(
+                        ['-metadata:s:%s' % index, 'title=%s' % atitle])
+        for subtitle_stream in subtitle_streams:
+            index = subtitle_stream['index']
+            if 'language' in subtitle_stream['tags']:
+                assert subtitle_stream['tags']['language'] == 'fre' or audio_stream['tags']['language'] == 'eng'
+            command_line.extend(['-map_metadata:s:%s' % index, '-1'])
+            if 'title' in subtitle_stream['tags']:
+                stitle = subtitle_stream['tags']['title']
+                command_line.extend(
+                    ['-metadata:s:%s' % index, 'title=%s' % stitle])
+        # global metadata:
+        command_line.extend(['-metadata:g', 'title=%s' %
+                             title, '-metadata:g', 'date=%s' % date])
         if out_ext == '.mkv':
                 # Date in Segment (mkvtoolnix-gui --edit-headers)
             timestamp = datetime.utcnow()
-            command_line.extend(['-metadata', 'creation_time=%s' % timestamp])
+            command_line.extend(
+                ['-metadata:g', 'creation_time=%s' % timestamp])
         command_line.extend(['-c:a', 'copy'])
         command_line.extend(['-c:v', 'copy'])
         command_line.extend(['-c:s', 'copy'])
@@ -263,13 +294,38 @@ class FfmpegHelper(object):
         if stderr:
             warnlines = [warnline for warnline in stderr.splitlines()
                          if warnline.startswith('[')]
+            # https://video.stackexchange.com/questions/28719/srt-subtitles-added-to-mkv-with-ffmpeg-are-not-displayed
+            err = 'Starting new cluster due to timestamp'
+            max_interleave_delta = False
             warnsigs = set()
             for warnline in warnlines:
                 # '[mp4 @ 0x55610560fa00] Non-monotonous DTS in output stream 0:1; previous: '
                 warnsig = warnline[0:74]
                 if not warnsig in warnsigs:
-                    self.logger.warning("The process stderr is %s", warnline)
-                    warnsigs.add(warnsig)
+                    if warnline.endswith(err):
+                        max_interleave_delta = True
+                    else:
+                        warnsigs.add(warnsig)
+                        self.logger.warning(
+                            "The process stderr is %s", warnline)
+            if max_interleave_delta:
+                self.logger.info("Invalid mkv file, restarting process")
+                index = len(command_line)
+                patch = ['-max_interleave_delta', '0']
+                command_line[index-1:index-1] = patch
+                errcode, stdout, stderr = self.call_process(
+                    command_line, nolog=not self.verbose)
+                if stderr:
+                    warnlines = [warnline for warnline in stderr.splitlines()
+                                 if warnline.startswith('[')]
+                    warnsigs = set()
+                    for warnline in warnlines:
+                        # '[mp4 @ 0x55610560fa00] Non-monotonous DTS in output stream 0:1; previous: '
+                        warnsig = warnline[0:74]
+                        if not warnsig in warnsigs:
+                            self.logger.warning(
+                                "The process stderr is %s", warnline)
+                            warnsigs.add(warnsig)
 
     def convert(self):
         self._grab_info()
