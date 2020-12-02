@@ -264,7 +264,10 @@ class FfmpegHelper(object):
         command_line.extend(['-metadata:g', 'title=%s' %
                              title, '-metadata:g', 'date=%s' % date])
         if out_ext == '.mkv':
-                # Date in Segment (mkvtoolnix-gui --edit-headers)
+            # DATE_RELEASED
+            command_line.extend(
+                ['-metadata:g', 'date_released=%s' % date])
+            # Date in Segment (mkvtoolnix-gui --edit-headers)
             timestamp = datetime.utcnow()
             command_line.extend(
                 ['-metadata:g', 'creation_time=%s' % timestamp])
