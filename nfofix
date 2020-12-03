@@ -14,6 +14,16 @@ from datetime import datetime
 # [avi @ 0x55ad16296b40] Switching to NI mode, due to poor interleaving
 # => seems to dispear anyway when copy(ing to mkv
 
+# WARNING
+# kodi scraper will do as they are told, when searching for pocahontas+1995+fr, the correct match is:
+# https://www.themoviedb.org/movie/55346-pocahontas
+# for eng:
+# https://www.themoviedb.org/movie/10530-pocahontas
+#     <title>Pocahontas : Une Légende indienne</title>
+#    <originaltitle>Pocahontas</originaltitle>
+# https://github.com/xbmc/xbmc/issues/18894
+
+
 
 class FfmpegHelper(object):
 
