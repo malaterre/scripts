@@ -6,6 +6,7 @@ import os
 import sys
 import argparse
 import json
+import shutil
 from bs4 import BeautifulSoup
 from datetime import datetime
 
@@ -23,6 +24,8 @@ from datetime import datetime
 #    <originaltitle>Pocahontas</originaltitle>
 # https://github.com/xbmc/xbmc/issues/18894
 
+# MP4+AC3:
+# http://forum.doom9.org/showthread.php?p=1173576#post1173576
 
 
 class FfmpegHelper(object):
@@ -44,6 +47,9 @@ class FfmpegHelper(object):
         self.simple_case = False
         self.opendivx = False
         self.lang = 'fre'
+
+    def set_output(self, output):
+        self.output_dir = output
 
     def set_verbose(self, verbose):
         self.verbose = verbose
@@ -219,9 +225,18 @@ class FfmpegHelper(object):
         date = self.nfo.year.string
         # Asterix.Cesar-poster.jpg
         poster = filename + '-poster.jpg'
-        # -i *Dumbo*poster* -disposition:v:1 attached_pic -map 0 -map 1
-        command_line.extend(
-            ['-i', poster, '-disposition:v:1', 'attached_pic', '-map', '0', '-map', '1'])
+        if out_ext == '.mp4':
+            # https://stackoverflow.com/questions/54717175/how-do-i-add-a-custom-thumbnail-to-a-mp4-file-using-ffmpeg
+            command_line.extend(
+                ['-i', poster, '-disposition:v:1', 'attached_pic', '-map', '0', '-map', '1'])
+        elif out_ext == '.mkv':
+            # rename file for consistency:
+            shutil.copyfile(poster, 'attached_pic.jpg')
+            # https://stackoverflow.com/questions/34137442/tagging-mkv-files-with-cover-images
+            # check mime type of jpeg file ?
+            command_line.extend(
+                ['-attach', 'attached_pic.jpg', '-metadata:s:t', 'mimetype=image/jpeg'])
+
         command_line.extend(['-metadata:s:v:1', 'title=Poster'])
         command_line.extend(['-metadata:s:v:1', 'language=%s' % self.lang])
         # preserve all metadata attached to chapter
@@ -299,8 +314,13 @@ class FfmpegHelper(object):
             unicode_characters = '”⁎∕꞉‹›︖＼⏐'
             for a, b in zip(forbidden_characters, unicode_characters):
                 out_name = out_name.replace(a, b)
-        out_file = os.path.join(
-            self.output_dir, out_name + out_ext)
+        # relative folder:
+        folder, filename = os.path.split(self.input_file)
+        assert folder[0] != '/'
+        outdir = os.path.join(self.output_dir, folder)
+        if not os.path.isdir(outdir):
+            os.makedirs(outdir)
+        out_file = os.path.join(outdir, out_name + out_ext)
         command_line.extend([out_file])
         errcode, stdout, stderr = self.call_process(
             command_line, nolog=not self.verbose)
@@ -351,7 +371,7 @@ class FfmpegHelper(object):
         self._check_info()
         format_name = self.ffprobe_data['format']['format_name']
         if self.simple_case:
-            if audio_stream['codec_name'] == 'aac' and video_stream['codec_name'] == 'h264':
+            if (audio_stream['codec_name'] == 'aac' or audio_stream['codec_name'] == 'ac3') and video_stream['codec_name'] == 'h264':
                 if format_name == 'matroska,webm':
                     self._convert('.mp4')
                 else:
@@ -415,6 +435,7 @@ def main(args):
     helper = FfmpegHelper(args.input)
     helper.set_lang(args.lang)
     helper.set_verbose(args.verbose)
+    helper.set_output(args.output)
     run(helper)
 
 
@@ -422,7 +443,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="ffmpeg + nfo")
     parser.add_argument("input", help='input movie')
-    parser.add_argument('output', nargs='?',
+    parser.add_argument('--output', nargs='?',
                         default='/tmp/dbg', help='output dir')
     parser.add_argument('--lang', nargs='?',
                         default='fre', help='lang')
