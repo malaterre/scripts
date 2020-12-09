@@ -142,7 +142,7 @@ class FfmpegHelper(object):
         #    self._raise_exception(
         #        "Convert your video to mpeg4 first")
         else:
-            assert video_stream['codec_name'] == 'h264' or video_stream['codec_name'] == 'mjpeg'
+            assert video_stream['codec_name'] == 'h264' or video_stream['codec_name'] == 'mjpeg' or video_stream['codec_name'] == 'msmpeg4v3' # will be fixed later in the script
 
     def _check_info(self):
         video_streams = [stream for stream in self.ffprobe_data['streams']
@@ -278,10 +278,10 @@ class FfmpegHelper(object):
                         ['-metadata:s:%s' % index, 'title=%s' % atitle])
         for subtitle_stream in subtitle_streams:
             index = subtitle_stream['index']
-            if 'language' in subtitle_stream['tags']:
+            if 'tags' in subtitle_stream and 'language' in subtitle_stream['tags']:
                 assert subtitle_stream['tags']['language'] == 'fre' or audio_stream['tags']['language'] == 'eng'
             command_line.extend(['-map_metadata:s:%s' % index, '-1'])
-            if 'title' in subtitle_stream['tags']:
+            if 'tags' in subtitle_stream and 'title' in subtitle_stream['tags']:
                 stitle = subtitle_stream['tags']['title']
                 command_line.extend(
                     ['-metadata:s:%s' % index, 'title=%s' % stitle])
