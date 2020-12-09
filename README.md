@@ -29,3 +29,9 @@ impossible de faire marcher:
 
 
 sous-titres => mkv seulement
+
+BUGS:
+
+Watch out for:
+* https://code.videolan.org/videolan/x264/commit/f9af2a0f71d0fca7c1cafa7657f03a302da0ca1c
+* https://trac.ffmpeg.org/ticket/8084
