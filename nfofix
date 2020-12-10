@@ -142,7 +142,9 @@ class FfmpegHelper(object):
         #    self._raise_exception(
         #        "Convert your video to mpeg4 first")
         else:
-            assert video_stream['codec_name'] == 'h264' or video_stream['codec_name'] == 'mjpeg' or video_stream['codec_name'] == 'msmpeg4v3' # will be fixed later in the script
+            # will be fixed later in the script
+            assert video_stream['codec_name'] == 'h264' or video_stream[
+                'codec_name'] == 'mjpeg' or video_stream['codec_name'] == 'msmpeg4v3'
 
     def _check_info(self):
         video_streams = [stream for stream in self.ffprobe_data['streams']
@@ -229,17 +231,20 @@ class FfmpegHelper(object):
             # https://stackoverflow.com/questions/54717175/how-do-i-add-a-custom-thumbnail-to-a-mp4-file-using-ffmpeg
             command_line.extend(
                 ['-i', poster, '-disposition:v:1', 'attached_pic', '-map', '0', '-map', '1'])
+            command_line.extend(['-metadata:s:v:1', 'title=Poster'])
+            command_line.extend(['-metadata:s:v:1', 'language=%s' % self.lang])
         elif out_ext == '.mkv':
+            # keep all streams
+            command_line.extend(['-map', '0'])
+
             # rename file for consistency:
             shutil.copyfile(poster, 'attached_pic.jpg')
             # https://stackoverflow.com/questions/34137442/tagging-mkv-files-with-cover-images
             # check mime type of jpeg file ?
             command_line.extend(
                 ['-attach', 'attached_pic.jpg', '-metadata:s:t', 'mimetype=image/jpeg'])
-
-        command_line.extend(['-metadata:s:v:1', 'title=Poster'])
-        command_line.extend(['-metadata:s:v:1', 'language=%s' % self.lang])
-        # preserve all metadata attached to chapter
+        # keep all metadata (well most of...), goal is to preserve all metadata attached to chapter
+        # https://video.stackexchange.com/questions/23741/how-to-prevent-ffmpeg-from-dropping-metadata
         command_line.extend(['-map_chapters', '0'])
         # remove metadata attached to video (mostly for mkv, eg. NUMBER_OF_BYTES-eng...)
         command_line.extend(['-map_metadata:s:v:0', '-1'])
@@ -304,6 +309,8 @@ class FfmpegHelper(object):
         if out_ext == '.avi':
             command_line.extend(['-tag:v:0', 'xvid'])
         if out_ext == '.mp4':
+            # https://stackoverflow.com/questions/44674791/ffmpeg-what-does-the-global-header-flag-do
+            command_line.extend(['-flags', '+global_header'])
             command_line.extend(['-movflags', '+faststart'])
         out_name = title.replace(' ', ' ')  # FIXME string copy
         if self.windows_ntfs:
