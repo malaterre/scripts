@@ -15,6 +15,9 @@ from datetime import datetime
 # [avi @ 0x55ad16296b40] Switching to NI mode, due to poor interleaving
 # => seems to dispear anyway when copy(ing to mkv
 
+# [avi @ 0x559bb67452c0] sample size (384) != block align (1152)
+# simple ffmpeg copy seems to cleanup the warning
+
 # WARNING
 # kodi scraper will do as they are told, when searching for pocahontas+1995+fr, the correct match is:
 # https://www.themoviedb.org/movie/55346-pocahontas
