@@ -6,7 +6,7 @@ import os
 import sys
 import argparse
 import json
-import shutil
+#import shutil
 from bs4 import BeautifulSoup
 from datetime import datetime
 
@@ -17,6 +17,9 @@ from datetime import datetime
 
 # [avi @ 0x559bb67452c0] sample size (384) != block align (1152)
 # simple ffmpeg copy seems to cleanup the warning
+
+# [aac @ 0x55c63b8c7e00] Queue input is backward in time
+# danger zone: seems like ffmpeg cannot remux those...
 
 # WARNING
 # kodi scraper will do as they are told, when searching for pocahontas+1995+fr, the correct match is:
@@ -50,6 +53,7 @@ class FfmpegHelper(object):
         self.simple_case = False
         self.opendivx = False
         self.lang = 'fre'
+        self.mediainfo_command = 'mediainfo'
 
     def set_output(self, output):
         self.output_dir = output
@@ -210,6 +214,16 @@ class FfmpegHelper(object):
                     "Codec Types are Unhandled: %s" % codec_types)
             self.simple_case = True
 
+    def _write_mediainfo(self, out_file):
+        command_line = [self.mediainfo_command, '--LogFile=%s' %
+                        (out_file + '.old.txt'), self.input_file]
+        errcode, stdout, stderr = self.call_process(
+            command_line, nolog=True)
+        command_line = [self.mediainfo_command, '--LogFile=%s' %
+                        (out_file + '.new.txt'), out_file]
+        errcode, stdout, stderr = self.call_process(
+            command_line, nolog=True)
+
     def _convert(self, out_ext):
         video_stream = [stream for stream in self.ffprobe_data['streams']
                         if stream['codec_type'] == 'video'][0]
@@ -241,11 +255,12 @@ class FfmpegHelper(object):
             command_line.extend(['-map', '0'])
 
             # rename file for consistency:
-            shutil.copyfile(poster, 'attached_pic.jpg')
+            # shutil.copyfile(poster, 'attached_pic.jpg')
+            # -metadata:s:t:0 filename=poster.jpeg
             # https://stackoverflow.com/questions/34137442/tagging-mkv-files-with-cover-images
             # check mime type of jpeg file ?
             command_line.extend(
-                ['-attach', 'attached_pic.jpg', '-metadata:s:t', 'mimetype=image/jpeg'])
+                ['-attach', poster, '-metadata:s:t', 'mimetype=image/jpeg', '-metadata:s:t:0', 'filename=attached_pic.jpg'])
         # keep all metadata (well most of...), goal is to preserve all metadata attached to chapter
         # https://video.stackexchange.com/questions/23741/how-to-prevent-ffmpeg-from-dropping-metadata
         command_line.extend(['-map_chapters', '0'])
@@ -280,19 +295,29 @@ class FfmpegHelper(object):
                 index = audio_stream['index']
                 assert audio_stream['tags']['language'] == 'fre' or audio_stream['tags']['language'] == 'eng'
                 command_line.extend(['-map_metadata:s:%s' % index, '-1'])
+                if 'language' in audio_stream['tags']:
+                    alang = audio_stream['tags']['language']
+                    command_line.extend(
+                        ['-metadata:s:%s' % index, 'language=%s' % alang])
                 if 'title' in audio_stream['tags']:
                     atitle = audio_stream['tags']['title']
                     command_line.extend(
                         ['-metadata:s:%s' % index, 'title=%s' % atitle])
         for subtitle_stream in subtitle_streams:
             index = subtitle_stream['index']
-            if 'tags' in subtitle_stream and 'language' in subtitle_stream['tags']:
-                assert subtitle_stream['tags']['language'] == 'fre' or audio_stream['tags']['language'] == 'eng'
-            command_line.extend(['-map_metadata:s:%s' % index, '-1'])
-            if 'tags' in subtitle_stream and 'title' in subtitle_stream['tags']:
-                stitle = subtitle_stream['tags']['title']
-                command_line.extend(
-                    ['-metadata:s:%s' % index, 'title=%s' % stitle])
+            if 'tags' in subtitle_stream:
+                command_line.extend(['-map_metadata:s:%s' % index, '-1'])
+                if 'language' in subtitle_stream['tags']:
+                    # mis	/ Uncoded languages / langues non codées
+                    assert subtitle_stream['tags']['language'] == 'fre' or subtitle_stream['tags'][
+                        'language'] == 'eng' or subtitle_stream['tags']['language'] == 'mis'
+                    slang = subtitle_stream['tags']['language']
+                    command_line.extend(
+                        ['-metadata:s:%s' % index, 'language=%s' % slang])
+                if 'title' in subtitle_stream['tags']:
+                    stitle = subtitle_stream['tags']['title']
+                    command_line.extend(
+                        ['-metadata:s:%s' % index, 'title=%s' % stitle])
         # global metadata:
         command_line.extend(['-metadata:g', 'title=%s' %
                              title, '-metadata:g', 'date=%s' % date])
@@ -369,6 +394,7 @@ class FfmpegHelper(object):
                             self.logger.warning(
                                 "The process stderr is %s", warnline)
                             warnsigs.add(warnsig)
+        self._write_mediainfo(out_file)
 
     def convert(self):
         self._grab_info()
@@ -385,7 +411,7 @@ class FfmpegHelper(object):
                 if format_name == 'matroska,webm':
                     self._convert('.mp4')
                 else:
-                    assert format_name == 'mov,mp4,m4a,3gp,3g2,mj2'
+                    assert format_name == 'mov,mp4,m4a,3gp,3g2,mj2' or format_name == 'avi'
                     self._convert('.mp4')
             else:
                 assert format_name == 'matroska,webm' or format_name == 'avi' or format_name == 'mov,mp4,m4a,3gp,3g2,mj2'
