@@ -186,6 +186,8 @@ class FfmpegHelper(object):
         if video_stream['codec_name'] == 'msmpeg4v3':
             assert self.ffprobe_data['format']['format_name'] == 'avi'
             assert self.ffprobe_data['format']['nb_streams'] == 2
+            audio_stream = audio_streams[0]
+            assert audio_stream['codec_name'] == 'mp3'
             bit_rate = video_stream['bit_rate']
             command_line = [self.ffmpeg_command, '-hide_banner', '-y', '-i', self.input_file, '-c:v', 'mpeg4',
                             '-vtag', 'xvid', '-b:v', bit_rate, '-pass', '1',  '-an', '-f', 'avi',  '/dev/null']
