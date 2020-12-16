@@ -79,7 +79,7 @@ class FfmpegHelper(object):
         self.nfo_file = filename + '.nfo'
         with open(self.nfo_file) as nfo_xml:
             self.nfo = BeautifulSoup(nfo_xml, 'lxml')
-        command_line = [self.ffprobe_command, '-hide_banner', '-show_streams',
+        command_line = [self.ffprobe_command, '-hide_banner', '-show_streams', '-show_chapters',
                         '-show_format', '-print_format', 'json', '-i', self.input_file]
         if not self.verbose:
             command_line.extend(['-v', 'error'])
@@ -150,7 +150,7 @@ class FfmpegHelper(object):
         #        "Convert your video to mpeg4 first")
         else:
             # will be fixed later in the script
-            assert video_stream['codec_name'] == 'h264' or video_stream[
+            assert video_stream['codec_name'] == 'h264' or video_stream['codec_name'] == 'hevc' or video_stream[
                 'codec_name'] == 'mjpeg' or video_stream['codec_name'] == 'msmpeg4v3'
 
     def _check_info(self):
@@ -206,7 +206,8 @@ class FfmpegHelper(object):
 
         # Technical limitation:
         nb_streams = self.ffprobe_data['format']['nb_streams']
-        if nb_streams == 2:
+        no_chapters = not self.ffprobe_data['chapters']
+        if nb_streams == 2 and no_chapters:
             # simple case: check audio + video:
             codec_type = self.ffprobe_data['streams'][0]['codec_type']
             codec_types = sorted([stream['codec_type']
@@ -276,7 +277,7 @@ class FfmpegHelper(object):
         if len(audio_streams) == 1:
             audio_stream = audio_streams[0]
             if 'tags' in audio_stream and 'language' in audio_stream['tags']:
-                assert audio_stream['tags']['language'] == 'fre' or audio_stream['tags']['language'] == 'und'
+                assert audio_stream['tags']['language'] == 'fre' or audio_stream['tags']['language'] == 'und' or audio_stream['tags']['language'] == 'fra'
             command_line.extend(['-map_metadata:s:a:0', '-1'])
             command_line.extend(['-metadata:s:a:0', 'language=%s' % self.lang])
             # title is garbage most of the time anyway
@@ -295,10 +296,15 @@ class FfmpegHelper(object):
         else:
             for audio_stream in audio_streams:
                 index = audio_stream['index']
-                assert audio_stream['tags']['language'] == 'fre' or audio_stream['tags']['language'] == 'eng'
                 command_line.extend(['-map_metadata:s:%s' % index, '-1'])
                 if 'language' in audio_stream['tags']:
+                    assert audio_stream['tags']['language'] == 'fre' or audio_stream['tags']['language'] == 'eng'
                     alang = audio_stream['tags']['language']
+                    command_line.extend(
+                        ['-metadata:s:%s' % index, 'language=%s' % alang])
+                elif 'LANGUAGE' in audio_stream['tags']:
+                    assert audio_stream['tags']['LANGUAGE'] == 'fre' or audio_stream['tags']['LANGUAGE'] == 'eng'
+                    alang = audio_stream['tags']['LANGUAGE']
                     command_line.extend(
                         ['-metadata:s:%s' % index, 'language=%s' % alang])
                 if 'title' in audio_stream['tags']:
@@ -310,10 +316,17 @@ class FfmpegHelper(object):
             if 'tags' in subtitle_stream:
                 command_line.extend(['-map_metadata:s:%s' % index, '-1'])
                 if 'language' in subtitle_stream['tags']:
-                    # mis	/ Uncoded languages / langues non codées
+                    # mis / Uncoded languages / langues non codées
                     assert subtitle_stream['tags']['language'] == 'fre' or subtitle_stream['tags'][
                         'language'] == 'eng' or subtitle_stream['tags']['language'] == 'mis'
                     slang = subtitle_stream['tags']['language']
+                    command_line.extend(
+                        ['-metadata:s:%s' % index, 'language=%s' % slang])
+                elif 'LANGUAGE' in subtitle_stream['tags']:
+                    # mis / Uncoded languages / langues non codées
+                    assert subtitle_stream['tags']['LANGUAGE'] == 'fre' or subtitle_stream['tags'][
+                        'LANGUAGE'] == 'eng' or subtitle_stream['tags']['LANGUAGE'] == 'mis'
+                    slang = subtitle_stream['tags']['LANGUAGE']
                     command_line.extend(
                         ['-metadata:s:%s' % index, 'language=%s' % slang])
                 if 'title' in subtitle_stream['tags']:
