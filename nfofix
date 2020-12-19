@@ -201,7 +201,8 @@ class FfmpegHelper(object):
             self._raise_exception(
                 "Re-inject fixed movie %s" % fixed_movie)
 
-        # FIXME Both RPI2b would crash and mini4k would display balck screen on a pix_fmt 'yuv420p10le'
+        # FIXME Both RPI2b would crash and mini4k would display black screen on a pix_fmt 'yuv420p10le/hevc'
+        # Panasonic TV: OK but sometime blocking artefact on yuv420p10le/h264
         assert video_stream["pix_fmt"] == "yuv420p"
 
         # Technical limitation:
