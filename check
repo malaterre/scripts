@@ -33,19 +33,30 @@ class FfmpegHelper(object):
                         '-show_format', '-print_format', 'json', '-i', self.input_file]
         errcode, stdout, stderr = self.call_process(command_line, nolog=True)
         self.ffprobe_data = json.loads(stdout)
-        self.logger.info(json.dumps(self.ffprobe_data, indent=4))
-        title = self.nfo.title.string
-        date = self.nfo.year.string
+        #self.logger.info(json.dumps(self.ffprobe_data, indent=4))
+        format_tags = self.ffprobe_data['format']['tags']
+        movie_title = format_tags['title']
+        movie_year = None
+        if 'date' in format_tags:
+          movie_year = format_tags['date']
+        elif 'DATE' in format_tags:
+          movie_year = format_tags['DATE']
+        assert movie_year != None
+        nfo_title = self.nfo.title.string
+        nfo_year = self.nfo.year.string
+        if nfo_title.lower() != movie_title.lower() or nfo_year != movie_year:
+          print( "Found: [%s] should be [%s] (diff: %r)" % (nfo_title, movie_title, nfo_title.lower() != movie_title.lower()))
+          print( "Found: [%s] should be [%s] (diff: %r)" % (nfo_year, movie_year, nfo_year != movie_year))
 
     def run(self):
         self._grab_info()
 
     def call_process(self, command_line_list, env=None, nolog=False, noerr=False):
         """ Thin wrapper over subprocess.call with logging functionality """
-        self.logger.info(
-            "Preparing to subprocess.call an external process with "
-            "the following command line: \n%s",
-            ' '.join('"{0}"'.format(w) for w in command_line_list))
+        #self.logger.info(
+        #    "Preparing to subprocess.call an external process with "
+        #    "the following command line: \n%s",
+        #    ' '.join('"{0}"'.format(w) for w in command_line_list))
         process = subprocess.Popen(command_line_list,
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
