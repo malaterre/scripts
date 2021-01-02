@@ -1,87 +1,212 @@
 #!/bin/env python3
 
+import argparse
 import json
+import sys
 import os
 import requests
 import tmdbsimple as tmdb
-tmdb.API_KEY = '800fd6556557cf00577e6f28190b26a8'
-tmdb.debug = True
+import base64
 
 
-auth = tmdb.Authentication()
-token = auth.token_new()["request_token"]
-
-password = os.environ['TMDB_PASS']
-auth.token_validate_with_login(
-    request_token=token, username="malaterre", password=password)
-session_id = auth.session_new(request_token=token)["session_id"]
-acc = tmdb.Account(session_id)
-# print(acc.info())
-print(session_id)
-#s = auth.session_new()
-# print(s)
-# account = tmdb.Account()
-
-#movies = []
-#idx = 1
-# while True:
-#    res = acc.rated_movies()
-#    movies = movies + res["results"]
-#    idx = idx + 1
-#    if idx > res["total_pages"]:
-#        break
-#
-#print(json.dumps(movies, indent=2))
-
-# https://www.themoviedb.org/movie/920
-identity = tmdb.Movies(336313)
-response = identity.info(language='fr-FR')
-print(json.dumps(response, indent=4, sort_keys=True))
-overview_old = response['overview']
-overview_new = overview_old.replace("'", "’")
+def get_location(url):
+    response = requests.head(url, allow_redirects=True)
+    return response.url
 
 
-headers = {
-    'authority': 'www.themoviedb.org',
-    'accept': 'application/json, text/javascript, */*; q=0.01',
-    'x-requested-with': 'XMLHttpRequest',
-    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36',
-    'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-    'origin': 'https://www.themoviedb.org',
-    'sec-fetch-site': 'same-origin',
-    'sec-fetch-mode': 'cors',
-    'sec-fetch-dest': 'empty',
-    'referer': 'https://www.themoviedb.org/movie/9836-happy-feet/edit?active_nav_item=primary_facts',
-    'accept-language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
-    'cookie': 'tmdb.prefs=%7B%22adult%22%3Atrue%2C%22i18n_fallback_language%22%3A%22en-US%22%2C%22locale%22%3A%22fr-FR%22%2C%22country_code%22%3A%22FR%22%2C%22timezone%22%3A%22Europe%2FParis%22%7D; tmdb._cookie_policy=true; _ga=GA1.2.514487234.1609250614; _gid=GA1.2.310921039.1609250614; _dc_gtm_UA-2087971-10=1; tmdb.session=ASpqFhZ_ocD0h3sT41QWBclUDTVriwZvFWVsO3DWpcZJZK13vu0wmBN4aiWKA0T1XpFk0d8yCzfV8uu9KMAg9e2Ne7Of76VaaJtJJus9oIY4U_ASix0SvFQad7_ZWoB4vveDZg7_hGL146_EJJc-UP7iPTSYYsyQar5AllB3e0tLmOxky2b6rzYOrtVmVsa4aqU9HX4qqAgnkSimR33eH-lm2iD8u1duo-Kp-LCu5YiIqYhHCkxlX6htEdTW-zpv-ZxmnuL0lRNJGEuviueYulmNlgJQF3XgpRdluI7a8wEjUPDJbl1j6Ow9EiHuxEVoSv7TqKJPVmLSEE0Nqof6tnUR_OWmq4Sw0NtDiuJjVhJfMYPRAjwOr7Xwqa3SefDpVw-DtJQOuH9_6Cb5BTsN4lmIE7ciPcsMWgtBrWncNGF49ypJduOwtuBP5Y_cQdMkOYkEqWao5Xy3UMF3-f77rj-DiSQ0w1_D06N5cwkcji6XjoI9dxVsZLpnPy414x4gLrcK9CEZL7y0zSwim9F4F_Vk8ffL7W9bZqwMjhzkSDLakrhz6nrXyi_yRuLx91WJICUh8Ry8f7PdlcSOEdbli31e623p3AGe_96NDt9avhEyKW1erg5T1Dt8G_w9t2j2Zxi0ZXYDXW6mPRKmWPi7nTUeiForE8W0kZ10Peue0cTR5XERWxUZUkIlq34IpoghuWXE_fRURglZ6dy_9T9ExE8315GerDJjKozJXVIXh2XMmzB9e0t91BSuSc2saaIcFkQZaxtl0hDnMUwVXArB8tRAH1M19H48D8UlKYRxd58fsgRMO2gG_nAWCwhSRLkaz4NdzkbJrhkQypNzldjA4j_B14fGbrvVf_RsION4Evft; _gali=submit',
-}
+def main(args):
+    movie_id = args.movie_id
 
-data = {
-#    '$fr_FR_translated_title': 'Happy Feet',
-#    'fr_FR_tagline': 'Chaque manchot a une chanson... Mais Mumble n\'est pas un manchot comme les autres',
-    'fr_FR_overview': 'Un manchot de l\u2019Antarctique n\'arrivera jamais \xE0 rien s\'il ne sait pas chanter, et le pauvre Mumble est sans conteste le pire chanteur du monde. Son talent \xE0 lui, c\'est... les claquettes, qu\'il pratique en virtuose, avec une ardeur confondante.Bien que sa maman, Norma Jean, trouve ce don "tout \xE0 fait charmant", son p\xE8re, Memphis, juge que "\xE7a ne fait vraiment pas pingouin". Tous deux savent aussi que leur rejeton ne trouvera l\'\xE2me soeur que le jour o\xF9 il saura pousser son "chant d\'amour". Le hasard fait bien les choses : Gloria, la seule et unique amie de notre h\xE9ros, est la meilleure chanteuse de la r\xE9gion. Mumble et elle sont copains depuis toujours, bien que cette gracieuse cr\xE9ature ait encore du mal \xE0 accepter son \xE9trange "anomalie".Banni de la tribu, Mumble se lie avec les Amigos de Terre Ad\xE9lie, un groupe latino exub\xE9rant, men\xE9 par Ramon...',
-#    'fr_FR_runtime': '108',
-#    'budget': '100000000',
-#    'fr_FR_homepage': '',
-#    'spoken_languages[]': 'en'
-}
+    tmdb.API_KEY = '800fd6556557cf00577e6f28190b26a8'
+    tmdb.debug = True
 
-#response = requests.post(
-#    'https://www.themoviedb.org/movie/9836-happy-feet/remote/primary_facts', headers=headers, data=data)
+    auth = tmdb.Authentication()
+    token = auth.token_new()["request_token"]
+
+    password = os.environ['TMDB_PASS']
+    auth.token_validate_with_login(
+        request_token=token, username="malaterre", password=password)
+    session_id = auth.session_new(request_token=token)["session_id"]
+    acc = tmdb.Account(session_id)
+    # print(acc.info())
+    print(session_id)
+    #s = auth.session_new()
+    # print(s)
+    # account = tmdb.Account()
+
+    #movies = []
+    #idx = 1
+    # while True:
+    #    res = acc.rated_movies()
+    #    movies = movies + res["results"]
+    #    idx = idx + 1
+    #    if idx > res["total_pages"]:
+    #        break
+    #
+    #print(json.dumps(movies, indent=2))
+
+    # https://www.themoviedb.org/movie/920
+    #movie_id = 336313
+    #movie_id = 9836
+    identity = tmdb.Movies(movie_id)
+    response = identity.info(language='fr-FR')
+    print(json.dumps(response, indent=4, sort_keys=True))
+    overview_old = response['overview']
+    overview_new = overview_old.replace("'", "’")
+    print(overview_old)
+    print(overview_new)
+
+    root_url = 'https://www.themoviedb.org/movie/'
+    #    'referer': 'https://www.themoviedb.org/movie/9836-happy-feet/edit?active_nav_item=primary_facts',
+    referer = get_location(root_url + str(movie_id)) + \
+        '/edit?active_nav_item=primary_facts'
+    print(referer)
+
+    headers = {
+        'authority': 'www.themoviedb.org',
+        'accept': 'application/json, text/javascript, */*; q=0.01',
+        'x-requested-with': 'XMLHttpRequest',
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36',
+        'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'origin': 'https://www.themoviedb.org',
+        'sec-fetch-site': 'same-origin',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-dest': 'empty',
+        'referer': referer,
+        'accept-language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
+        'cookie': 'tmdb.prefs=%7B%22adult%22%3Atrue%2C%22i18n_fallback_language%22%3A%22en-US%22%2C%22locale%22%3A%22fr-FR%22%2C%22country_code%22%3A%22FR%22%2C%22timezone%22%3A%22Europe%2FParis%22%7D; tmdb._cookie_policy=true; _ga=GA1.2.1050783203.1609602055; _gid=GA1.2.565469278.1609602055; _dc_gtm_UA-2087971-10=1; tmdb.session=Ac_rgkNnTS65mnyhl-a2ArNR3HZIVO5rnhHZ67vRtX_DgXOzD32Ms-Crw-Z_WutUiKpUGkEpXCGt_JlX_OmWcUnXrY6zVN63ddmjzXaBBD-_IiIZnh8pjMbeh7Wow2worYsCIHuHlLVsA_U2_L1jdBoavr2A5KgdhGebmy3VHRinAOxRuilm7pXcJzILWoB2fKSBKaNkWFCX3XEE25OeBRQE9UZN_VsGfuTxCSzLfZ7XovfMGil91OqJR_9OAr93IJ4Glx2RExfeYmiWTpv1HpYbASrEY4Rv8jNCvK_DjSVnyFPMIS0d-W0Oi5UGvXWvBHyUXAB9YkHYd5Ms5oGfy1zyUYTHci8Q7AImB0lSbkkXh-Fdd5VpqVyWAkAH776LYnXRzUpM6fdRg84CiJfC2R5l1bTfXvHgDbUGMn-MrFSvmWjwfa7dLVol5uUXX0E5KhOFvbo0UoGFD5ZQMzJhsr71WUNUwb2MSG36ZDxcwSOb7O5K9i_HGqm5_MnAFUvJeL_nSLcHcuvlplNrveqB4jjkPk_UGqKhDzIiZ7aU8C6x-ABDgUy6WO6xkC5MisW63SpWiGcYV1-7pSW3dZdJai0i_PlwLHL8nNayldiTsJCTGGBqnNtYvreF_jX9UNCSdR17A253aFTt-ckQObT2rZqfrEd77Gcb3E8jcUGSkzbeYSDx6WwLOiaHUijxXPyfZtJkHe-TyeBBsE3Prw_vvqcNOVaT7B9fc-2sPZRisz_h-G6EE0rRZktcph3_3e9mX7ctIJik8rEFaatwhSMabqqQCX8nBZ-7EGvdNk0rZfvc5vS4QK5jsQLCTHyW-Zk5jmE95tgc3-JHdqUQ-iLYknVSNqXChKhqajtHLQbqglvl; _gali=submit',
+    }
+
+    # data = {
+    #  'title': 'Hell & Back',
+    #  'fr_FR_translated_title': '',
+    #  'fr_FR_tagline': '',
+    #  'fr_FR_overview': 'Deux amis tentent d\u2019en sauver un troisi\xE8me, tra\xEEn\xE9 en enfer par accident.',
+    #  'status': 'Released',
+    #  'adult': '0',
+    #  '_type': 'Movie',
+    #  'video': '0',
+    #  'fr_FR_runtime': '',
+    #  'revenue': '157768',
+    #  'budget': '',
+    #  'fr_FR_homepage': '',
+    #  'spoken_languages[]': 'en'
+    # }
+
+    print(json.dumps(headers, indent=4, sort_keys=True))
+
+    data = {
+        #    '$fr_FR_translated_title': 'Happy Feet',
+        #    'fr_FR_tagline': 'Chaque manchot a une chanson... Mais Mumble n\'est pas un manchot comme les autres',
+        'fr_FR_overview': overview_new,
+        #    'fr_FR_runtime': '108',
+        #    'budget': response['budget']
+        #    'fr_FR_homepage': '',
+        #    'spoken_languages[]': spoken_languages[0]
+    }
+    # if 'original_title' in response:
+    #  data['title'] = response['original_title']
+    if 'title' in response:
+        data['fr_FR_translated_title'] = response['title']
+    if 'tagline' in response:
+        data['fr_FR_tagline'] = response['tagline']
+    if 'homepage' in response:
+        data['fr_FR_homepage'] = response['homepage']
+
+    # if 'status' in response:
+    #  data['status'] = response['status']
+    # if 'adult' in response:
+    #  data['adult'] = 1 if response['adult'] else 0
+    if 'revenue' in response:
+        data['revenue'] = str(response['revenue'])
+    if 'budget' in response:
+        data['budget'] = str(response['budget'])
+    if 'runtime' in response:
+        data['fr_FR_runtime'] = str(response['runtime'])
+    if 'spoken_languages' in response:
+        spoken_languages = [entry['iso_639_1']
+                            for entry in response['spoken_languages']]
+        # print(spoken_languages)
+        data['spoken_languages[]'] = spoken_languages[0]
+
+    print(json.dumps(data, indent=4, sort_keys=True))
+
+    data2 = {
+        '$fr_FR_translated_title': 'H\xF4tel Transylvanie 2',
+        'fr_FR_tagline': 'Plus il y a de monstres, plus il y a de probl\xE8mes \\u0021',
+        'fr_FR_overview': 'Dracula est dor\xE9navant grand-p\xE8re et est bien d\xE9cid\xE9 \xE0 initier son petit gar\xE7on \xE0 la crini\xE8re rousse aux rudiments du monde de l\'\xE9pouvante. Bien s\xFBr, rien ne va se passer comme pr\xE9vu pour notre dr\xF4lissime vampire et sa bande de monstres : Frankenstein, la Momie, l\u2019Homme invisible, le Loup-garou et le Blob...',
+        'fr_FR_runtime': '90',
+        'revenue': '473226958',
+        'budget': '80000000',
+        'fr_FR_homepage': '',
+        'spoken_languages[]': 'en'
+    }
+
+    print(json.dumps(data2, indent=4, sort_keys=True))
+
+    # 'https://www.themoviedb.org/movie/9836-happy-feet/remote/primary_facts', headers=headers, data=data)
+    primary_facts = get_location(
+        root_url + str(movie_id)) + '/remote/primary_facts'
+    # print(primary_facts)
+
+    if not args.dry_run:
+        response = requests.post(primary_facts, headers=headers, data=data)
+    # print(response)
+
+    # curl 'https://www.themoviedb.org/movie/9836-happy-feet/remote/primary_facts' \
+    #  -H 'authority: www.themoviedb.org' \
+    #  -H 'accept: application/json, text/javascript, */*; q=0.01' \
+    #  -H 'x-requested-with: XMLHttpRequest' \
+    #  -H 'user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36' \
+    #  -H 'content-type: application/x-www-form-urlencoded; charset=UTF-8' \
+    #  -H 'origin: https://www.themoviedb.org' \
+    #  -H 'sec-fetch-site: same-origin' \
+    #  -H 'sec-fetch-mode: cors' \
+    #  -H 'sec-fetch-dest: empty' \
+    #  -H 'referer: https://www.themoviedb.org/movie/9836-happy-feet/edit?active_nav_item=primary_facts' \
+    #  -H 'accept-language: fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7' \
+    #  -H 'cookie: tmdb.prefs=%7B%22adult%22%3Atrue%2C%22i18n_fallback_language%22%3A%22en-US%22%2C%22locale%22%3A%22fr-FR%22%2C%22country_code%22%3A%22FR%22%2C%22timezone%22%3A%22Europe%2FParis%22%7D; tmdb._cookie_policy=true; _ga=GA1.2.514487234.1609250614; _gid=GA1.2.310921039.1609250614; _dc_gtm_UA-2087971-10=1; tmdb.session=ASpqFhZ_ocD0h3sT41QWBclUDTVriwZvFWVsO3DWpcZJZK13vu0wmBN4aiWKA0T1XpFk0d8yCzfV8uu9KMAg9e2Ne7Of76VaaJtJJus9oIY4U_ASix0SvFQad7_ZWoB4vveDZg7_hGL146_EJJc-UP7iPTSYYsyQar5AllB3e0tLmOxky2b6rzYOrtVmVsa4aqU9HX4qqAgnkSimR33eH-lm2iD8u1duo-Kp-LCu5YiIqYhHCkxlX6htEdTW-zpv-ZxmnuL0lRNJGEuviueYulmNlgJQF3XgpRdluI7a8wEjUPDJbl1j6Ow9EiHuxEVoSv7TqKJPVmLSEE0Nqof6tnUR_OWmq4Sw0NtDiuJjVhJfMYPRAjwOr7Xwqa3SefDpVw-DtJQOuH9_6Cb5BTsN4lmIE7ciPcsMWgtBrWncNGF49ypJduOwtuBP5Y_cQdMkOYkEqWao5Xy3UMF3-f77rj-DiSQ0w1_D06N5cwkcji6XjoI9dxVsZLpnPy414x4gLrcK9CEZL7y0zSwim9F4F_Vk8ffL7W9bZqwMjhzkSDLakrhz6nrXyi_yRuLx91WJICUh8Ry8f7PdlcSOEdbli31e623p3AGe_96NDt9avhEyKW1erg5T1Dt8G_w9t2j2Zxi0ZXYDXW6mPRKmWPi7nTUeiForE8W0kZ10Peue0cTR5XERWxUZUkIlq34IpoghuWXE_fRURglZ6dy_9T9ExE8315GerDJjKozJXVIXh2XMmzB9e0t91BSuSc2saaIcFkQZaxtl0hDnMUwVXArB8tRAH1M19H48D8UlKYRxd58fsgRMO2gG_nAWCwhSRLkaz4NdzkbJrhkQypNzldjA4j_B14fGbrvVf_RsION4Evft; _gali=submit' \
+    #  --data-raw $'fr_FR_translated_title=Happy+Feet&fr_FR_tagline=Chaque+manchot+a+une+chanson...+Mais+Mumble+n\'est+pas+un+manchot+comme+les+autres&fr_FR_overview=Un+manchot+de+l%E2%80%99Antarctique+n\'arrivera+jamais+%C3%A0+rien+s\'il+ne+sait+pas+chanter%2C+et+le+pauvre+Mumble+est+sans+conteste+le+pire+chanteur+du+monde.+Son+talent+%C3%A0+lui%2C+c\'est...+les+claquettes%2C+qu\'il+pratique+en+virtuose%2C+avec+une+ardeur+confondante.Bien+que+sa+maman%2C+Norma+Jean%2C+trouve+ce+don+%22tout+%C3%A0+fait+charmant%22%2C+son+p%C3%A8re%2C+Memphis%2C+juge+que+%22%C3%A7a+ne+fait+vraiment+pas+pingouin%22.+Tous+deux+savent+aussi+que+leur+rejeton+ne+trouvera+l\'%C3%A2me+soeur+que+le+jour+o%C3%B9+il+saura+pousser+son+%22chant+d\'amour%22.+Le+hasard+fait+bien+les+choses+%3A+Gloria%2C+la+seule+et+unique+amie+de+notre+h%C3%A9ros%2C+est+la+meilleure+chanteuse+de+la+r%C3%A9gion.+Mumble+et+elle+sont+copains+depuis+toujours%2C+bien+que+cette+gracieuse+cr%C3%A9ature+ait+encore+du+mal+%C3%A0+accepter+son+%C3%A9trange+%22anomalie%22.Banni+de+la+tribu%2C+Mumble+se+lie+avec+les+Amigos+de+Terre+Ad%C3%A9lie%2C+un+groupe+latino+exub%C3%A9rant%2C+men%C3%A9+par+Ramon...&fr_FR_runtime=108&budget=100000000&fr_FR_homepage=&spoken_languages%5B%5D=en' \
+    #  --compressed
+
+    # curl 'https://www.themoviedb.org/movie/336313-hell-back/remote/primary_facts' \
+    #  -H 'authority: www.themoviedb.org' \
+    #  -H 'accept: application/json, text/javascript, */*; q=0.01' \
+    #  -H 'x-requested-with: XMLHttpRequest' \
+    #  -H 'user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36' \
+    #  -H 'content-type: application/x-www-form-urlencoded; charset=UTF-8' \
+    #  -H 'origin: https://www.themoviedb.org' \
+    #  -H 'sec-fetch-site: same-origin' \
+    #  -H 'sec-fetch-mode: cors' \
+    #  -H 'sec-fetch-dest: empty' \
+    #  -H 'referer: https://www.themoviedb.org/movie/336313-hell-back/edit?active_nav_item=primary_facts' \
+    #  -H 'accept-language: fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7' \
+    #  -H 'cookie: tmdb.prefs=%7B%22adult%22%3Atrue%2C%22i18n_fallback_language%22%3A%22en-US%22%2C%22locale%22%3A%22fr-FR%22%2C%22country_code%22%3A%22FR%22%2C%22timezone%22%3A%22Europe%2FParis%22%7D; tmdb._cookie_policy=true; _ga=GA1.2.1266486897.1609337648; _gid=GA1.2.2012550614.1609337648; _dc_gtm_UA-2087971-10=1; tmdb.session=AX8Pp2rCmuHaVv20I2FLssVodW07DJl2T2QyS8WNvAswiluatVmHqUPYSYwKEM-g2z_gUk1kuk2CI9KPHN8ctfXxE2i1kwWfmCGcp5_OKvSzI9RAZHYajPoMlf7bNQxobb-whkOf0imvAD4KT_bjuC5Mn_qCYiDnbMQBiHyqSemJ9pC1eQXgGpPtPkW1OqLjaoHI9fNqiys4vHATHVpVetu0ln_AYG8iQT7E5gwf9TKApHovFuDnOY2B_n5jzhIQA5Y19JiTof7VkgAQVP-N39qSIBAcWuBDVaqR5TPOii-uDEjSdcauMSO8A9AfBqD5gDY5ycHHuCdLQNs8BENmCAP9-fy5BKDb2VHaTrTKV8BxKirNRHezZhJU6ptzFA6skptxguRucKnoWAJ9RlEI6_sh4SaDHMKOpW6AvyY01BRpnCgc5oV5arrBG8ZOlL9dh4IzBRgdK4wYvYzJjqGSoY30uEzgGlPOxSq18mVTDwTiDn5EXkEFIbo8AJksmGFB-cvtorpsbjYo8mBVV5UlUqMDbWfxRgVHHAX98_cjQGhU2q47QPljpoQHXltyIBS9P-kmi6UwFtC2exo3wRvI9NIJZMte9Fy7nlZq_ilrbCRDATvByOSkFpEAH_001KruOBi0H2EX0lffOHkDxhqjogNMH7A5_oF6Ey3tUj09fvH4RXuCk-a8Va7C31R_CiVu1YyoFtb70YWmJrCQVmBDT427s068xqefaTHX8yBVTnCkLpEK6gK2nwm-rAQyFGNHFRgYZcBlla6PAJGO_icS6nOe0eSuLXRAF5mfau2wAQBkWjixValYv0hq80t4EBKTDKOtQcqkIoDo_y4GlDhdrOsCOpm_bLvYIbyjJnbM2Fgp; _gali=submit' \
+    #  --data-raw 'title=Hell+%26+Back&fr_FR_translated_title=&fr_FR_tagline=&fr_FR_overview=Deux+amis+tentent+d%E2%80%99en+sauver+un+troisi%C3%A8me%2C+tra%C3%AEn%C3%A9+en+enfer+par+accident.&status=Released&adult=0&_type=Movie&video=0&fr_FR_runtime=&revenue=157768&budget=&fr_FR_homepage=&spoken_languages%5B%5D=en' \
+    #  --compressed
+
+    # curl 'https://www.themoviedb.org/movie/159824-hotel-transylvania-2/remote/primary_facts' \
+    #  -H 'authority: www.themoviedb.org' \
+    #  -H 'accept: application/json, text/javascript, */*; q=0.01' \
+    #  -H 'x-requested-with: XMLHttpRequest' \
+    #  -H 'user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36' \
+    #  -H 'content-type: application/x-www-form-urlencoded; charset=UTF-8' \
+    #  -H 'origin: https://www.themoviedb.org' \
+    #  -H 'sec-fetch-site: same-origin' \
+    #  -H 'sec-fetch-mode: cors' \
+    #  -H 'sec-fetch-dest: empty' \
+    #  -H 'referer: https://www.themoviedb.org/movie/159824-hotel-transylvania-2/edit?active_nav_item=primary_facts' \
+    #  -H 'accept-language: fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7' \
+    #  -H 'cookie: tmdb.prefs=%7B%22adult%22%3Atrue%2C%22i18n_fallback_language%22%3A%22en-US%22%2C%22locale%22%3A%22fr-FR%22%2C%22country_code%22%3A%22FR%22%2C%22timezone%22%3A%22Europe%2FParis%22%7D; tmdb._cookie_policy=true; _ga=GA1.2.1186836210.1609408961; _gid=GA1.2.1330712339.1609408961; _dc_gtm_UA-2087971-10=1; tmdb.session=AfOKd-yin8q1UhBGMkb0ijJgSEG7Q9nvRGReLv9AbFoOzd-CjeO4QHwXl4lq68iuNn9d3oyePCL5z46QzMCMpDrm2Yn687a6X9gJh6VsuUBW8LkZ4RzuUp3xTgxljozWHC-8VyAEftLKiJyPJDxG_jzkPRBcjaogzytOD4jIMfzVKYJ-e1aVV187kzwsScG3lEKktqgN3RHSW0qAtkyvxTvwZal9UxKMNPfntfUUkSx7Abczf3IHV7tAQlCMLeXbKbVxungSrh6p7kratxAdyLx4wdcj3X9xeSmv2_R5325WUbnxFP2hYmGeOf1-09rngFI5qdMW3hjq1_azH-1u5Ty7drJ3bAiR4fTtzjweSeQtDDfhHXS7scibmlMdtx4utnADBKfT-O3h6mpAwuijfW5t1zY0NqejjQJi7iFFjoQMfnMcKLRc_zTaCKsaQ_luwE8i3hi0_0Uq7G0mB7KtwXanO-bOFS0Y0x_R-T3ADbPsMUEtPn9YtLtVsK_UDYTB0iyoXfZfI9a9l-AOlgKk43CAgBzr_b4CHpgsqA9t4ofqcIRyhavAWExGs9WmVKnkC7TcJIDY-7m0KSvTRYKyFhcJRGFJWpavQlW5ALutVdEgBprXg08pFbODyVm3Bl97-HYvUR7QEf7sv9z5irywFfyalJDTN0umr8Zkxgluw9pfHPQ3AJ7Y5bOO53W-t3Pi7CWt_rTdXleMHAd452_xuhmB3NmL7PiPp6ggOVxqQ8MBw2rDIzA1lKU5qBR9vzoGUExvvxDDv-_SrghUMAhM5kbgeH4-q5C2R0OJsbzkiyh6baBZi4mbG2kHyJ7fZ6qVTMR-Y-CAG-t6PCpzMMVO_J9ji8GSiThF-WoISIbR7lxy; _gali=submit' \
+    #  --data-raw $'fr_FR_translated_title=H%C3%B4tel+Transylvanie+2&fr_FR_tagline=Plus+il+y+a+de+monstres%2C+plus+il+y+a+de+probl%C3%A8mes+\u0021&fr_FR_overview=Dracula+est+dor%C3%A9navant+grand-p%C3%A8re+et+est+bien+d%C3%A9cid%C3%A9+%C3%A0+initier+son+petit+gar%C3%A7on+%C3%A0+la+crini%C3%A8re+rousse+aux+rudiments+du+monde+de+l\'%C3%A9pouvante.+Bien+s%C3%BBr%2C+rien+ne+va+se+passer+comme+pr%C3%A9vu+pour+notre+dr%C3%B4lissime+vampire+et+sa+bande+de+monstres+%3A+Frankenstein%2C+la+Momie%2C+l%E2%80%99Homme+invisible%2C+le+Loup-garou+et+le+Blob...&fr_FR_runtime=90&revenue=473226958&budget=80000000&fr_FR_homepage=&spoken_languages%5B%5D=en' \
+    #  --compressed
 
 
-# curl 'https://www.themoviedb.org/movie/9836-happy-feet/remote/primary_facts' \
-#  -H 'authority: www.themoviedb.org' \
-#  -H 'accept: application/json, text/javascript, */*; q=0.01' \
-#  -H 'x-requested-with: XMLHttpRequest' \
-#  -H 'user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36' \
-#  -H 'content-type: application/x-www-form-urlencoded; charset=UTF-8' \
-#  -H 'origin: https://www.themoviedb.org' \
-#  -H 'sec-fetch-site: same-origin' \
-#  -H 'sec-fetch-mode: cors' \
-#  -H 'sec-fetch-dest: empty' \
-#  -H 'referer: https://www.themoviedb.org/movie/9836-happy-feet/edit?active_nav_item=primary_facts' \
-#  -H 'accept-language: fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7' \
-#  -H 'cookie: tmdb.prefs=%7B%22adult%22%3Atrue%2C%22i18n_fallback_language%22%3A%22en-US%22%2C%22locale%22%3A%22fr-FR%22%2C%22country_code%22%3A%22FR%22%2C%22timezone%22%3A%22Europe%2FParis%22%7D; tmdb._cookie_policy=true; _ga=GA1.2.514487234.1609250614; _gid=GA1.2.310921039.1609250614; _dc_gtm_UA-2087971-10=1; tmdb.session=ASpqFhZ_ocD0h3sT41QWBclUDTVriwZvFWVsO3DWpcZJZK13vu0wmBN4aiWKA0T1XpFk0d8yCzfV8uu9KMAg9e2Ne7Of76VaaJtJJus9oIY4U_ASix0SvFQad7_ZWoB4vveDZg7_hGL146_EJJc-UP7iPTSYYsyQar5AllB3e0tLmOxky2b6rzYOrtVmVsa4aqU9HX4qqAgnkSimR33eH-lm2iD8u1duo-Kp-LCu5YiIqYhHCkxlX6htEdTW-zpv-ZxmnuL0lRNJGEuviueYulmNlgJQF3XgpRdluI7a8wEjUPDJbl1j6Ow9EiHuxEVoSv7TqKJPVmLSEE0Nqof6tnUR_OWmq4Sw0NtDiuJjVhJfMYPRAjwOr7Xwqa3SefDpVw-DtJQOuH9_6Cb5BTsN4lmIE7ciPcsMWgtBrWncNGF49ypJduOwtuBP5Y_cQdMkOYkEqWao5Xy3UMF3-f77rj-DiSQ0w1_D06N5cwkcji6XjoI9dxVsZLpnPy414x4gLrcK9CEZL7y0zSwim9F4F_Vk8ffL7W9bZqwMjhzkSDLakrhz6nrXyi_yRuLx91WJICUh8Ry8f7PdlcSOEdbli31e623p3AGe_96NDt9avhEyKW1erg5T1Dt8G_w9t2j2Zxi0ZXYDXW6mPRKmWPi7nTUeiForE8W0kZ10Peue0cTR5XERWxUZUkIlq34IpoghuWXE_fRURglZ6dy_9T9ExE8315GerDJjKozJXVIXh2XMmzB9e0t91BSuSc2saaIcFkQZaxtl0hDnMUwVXArB8tRAH1M19H48D8UlKYRxd58fsgRMO2gG_nAWCwhSRLkaz4NdzkbJrhkQypNzldjA4j_B14fGbrvVf_RsION4Evft; _gali=submit' \
-#  --data-raw $'fr_FR_translated_title=Happy+Feet&fr_FR_tagline=Chaque+manchot+a+une+chanson...+Mais+Mumble+n\'est+pas+un+manchot+comme+les+autres&fr_FR_overview=Un+manchot+de+l%E2%80%99Antarctique+n\'arrivera+jamais+%C3%A0+rien+s\'il+ne+sait+pas+chanter%2C+et+le+pauvre+Mumble+est+sans+conteste+le+pire+chanteur+du+monde.+Son+talent+%C3%A0+lui%2C+c\'est...+les+claquettes%2C+qu\'il+pratique+en+virtuose%2C+avec+une+ardeur+confondante.Bien+que+sa+maman%2C+Norma+Jean%2C+trouve+ce+don+%22tout+%C3%A0+fait+charmant%22%2C+son+p%C3%A8re%2C+Memphis%2C+juge+que+%22%C3%A7a+ne+fait+vraiment+pas+pingouin%22.+Tous+deux+savent+aussi+que+leur+rejeton+ne+trouvera+l\'%C3%A2me+soeur+que+le+jour+o%C3%B9+il+saura+pousser+son+%22chant+d\'amour%22.+Le+hasard+fait+bien+les+choses+%3A+Gloria%2C+la+seule+et+unique+amie+de+notre+h%C3%A9ros%2C+est+la+meilleure+chanteuse+de+la+r%C3%A9gion.+Mumble+et+elle+sont+copains+depuis+toujours%2C+bien+que+cette+gracieuse+cr%C3%A9ature+ait+encore+du+mal+%C3%A0+accepter+son+%C3%A9trange+%22anomalie%22.Banni+de+la+tribu%2C+Mumble+se+lie+avec+les+Amigos+de+Terre+Ad%C3%A9lie%2C+un+groupe+latino+exub%C3%A9rant%2C+men%C3%A9+par+Ramon...&fr_FR_runtime=108&budget=100000000&fr_FR_homepage=&spoken_languages%5B%5D=en' \
-#  --compressed
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="tmdb typo")
+    parser.add_argument("movie_id", help='movie id')
+    #
+    parser.add_argument("--dry-run",
+                        help="dry run", action='store_true')
+    main(parser.parse_args())
