@@ -30,12 +30,12 @@ def main(args):
     acc = tmdb.Account(session_id)
     # print(acc.info())
     print(session_id)
-    #s = auth.session_new()
+    # s = auth.session_new()
     # print(s)
     # account = tmdb.Account()
 
-    #movies = []
-    #idx = 1
+    # movies = []
+    # idx = 1
     # while True:
     #    res = acc.rated_movies()
     #    movies = movies + res["results"]
@@ -43,11 +43,11 @@ def main(args):
     #    if idx > res["total_pages"]:
     #        break
     #
-    #print(json.dumps(movies, indent=2))
+    # print(json.dumps(movies, indent=2))
 
     # https://www.themoviedb.org/movie/920
-    #movie_id = 336313
-    #movie_id = 9836
+    # movie_id = 336313
+    # movie_id = 9836
     identity = tmdb.Movies(movie_id)
     response = identity.info(language='fr-FR')
     print(json.dumps(response, indent=4, sort_keys=True))
@@ -134,7 +134,7 @@ def main(args):
     data2 = {
         '$fr_FR_translated_title': 'H\xF4tel Transylvanie 2',
         'fr_FR_tagline': 'Plus il y a de monstres, plus il y a de probl\xE8mes \\u0021',
-        'fr_FR_overview': 'Dracula est dor\xE9navant grand-p\xE8re et est bien d\xE9cid\xE9 \xE0 initier son petit gar\xE7on \xE0 la crini\xE8re rousse aux rudiments du monde de l\'\xE9pouvante. Bien s\xFBr, rien ne va se passer comme pr\xE9vu pour notre dr\xF4lissime vampire et sa bande de monstres : Frankenstein, la Momie, l\u2019Homme invisible, le Loup-garou et le Blob...',
+        'fr_FR_overview': 'Dracula est dor\xE9navant grand-p\xE8re et est bien d\xE9cid\xE9 \xE0 initier son petit gar\xE7on \xE0 la crini\xE8re rousse aux rudiments du monde de l\u2019\xE9pouvante. Bien s\xFBr, rien ne va se passer comme pr\xE9vu pour notre dr\xF4lissime vampire et sa bande de monstres : Frankenstein, la Momie, l\u2019Homme invisible, le Loup-garou et le Blob...',
         'fr_FR_runtime': '90',
         'revenue': '473226958',
         'budget': '80000000',
@@ -151,7 +151,7 @@ def main(args):
 
     if not args.dry_run:
         response = requests.post(primary_facts, headers=headers, data=data)
-    # print(response)
+        print(response)
 
     # curl 'https://www.themoviedb.org/movie/9836-happy-feet/remote/primary_facts' \
     #  -H 'authority: www.themoviedb.org' \
