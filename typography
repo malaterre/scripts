@@ -52,7 +52,9 @@ def main(args):
     response = identity.info(language='fr-FR')
     print(json.dumps(response, indent=4, sort_keys=True))
     overview_old = response['overview']
-    overview_new = overview_old.replace("'", "’")
+    overview_new = overview_old.replace("  ", " ").replace("'", "’").replace(
+        '"', '«', 1).replace('"', '»', 1)
+
     print(overview_old)
     print(overview_new)
 
@@ -74,7 +76,8 @@ def main(args):
         'sec-fetch-dest': 'empty',
         'referer': referer,
         'accept-language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
-        'cookie': 'tmdb.prefs=%7B%22adult%22%3Atrue%2C%22i18n_fallback_language%22%3A%22en-US%22%2C%22locale%22%3A%22fr-FR%22%2C%22country_code%22%3A%22FR%22%2C%22timezone%22%3A%22Europe%2FParis%22%7D; tmdb._cookie_policy=true; _ga=GA1.2.1050783203.1609602055; _gid=GA1.2.565469278.1609602055; _dc_gtm_UA-2087971-10=1; tmdb.session=Ac_rgkNnTS65mnyhl-a2ArNR3HZIVO5rnhHZ67vRtX_DgXOzD32Ms-Crw-Z_WutUiKpUGkEpXCGt_JlX_OmWcUnXrY6zVN63ddmjzXaBBD-_IiIZnh8pjMbeh7Wow2worYsCIHuHlLVsA_U2_L1jdBoavr2A5KgdhGebmy3VHRinAOxRuilm7pXcJzILWoB2fKSBKaNkWFCX3XEE25OeBRQE9UZN_VsGfuTxCSzLfZ7XovfMGil91OqJR_9OAr93IJ4Glx2RExfeYmiWTpv1HpYbASrEY4Rv8jNCvK_DjSVnyFPMIS0d-W0Oi5UGvXWvBHyUXAB9YkHYd5Ms5oGfy1zyUYTHci8Q7AImB0lSbkkXh-Fdd5VpqVyWAkAH776LYnXRzUpM6fdRg84CiJfC2R5l1bTfXvHgDbUGMn-MrFSvmWjwfa7dLVol5uUXX0E5KhOFvbo0UoGFD5ZQMzJhsr71WUNUwb2MSG36ZDxcwSOb7O5K9i_HGqm5_MnAFUvJeL_nSLcHcuvlplNrveqB4jjkPk_UGqKhDzIiZ7aU8C6x-ABDgUy6WO6xkC5MisW63SpWiGcYV1-7pSW3dZdJai0i_PlwLHL8nNayldiTsJCTGGBqnNtYvreF_jX9UNCSdR17A253aFTt-ckQObT2rZqfrEd77Gcb3E8jcUGSkzbeYSDx6WwLOiaHUijxXPyfZtJkHe-TyeBBsE3Prw_vvqcNOVaT7B9fc-2sPZRisz_h-G6EE0rRZktcph3_3e9mX7ctIJik8rEFaatwhSMabqqQCX8nBZ-7EGvdNk0rZfvc5vS4QK5jsQLCTHyW-Zk5jmE95tgc3-JHdqUQ-iLYknVSNqXChKhqajtHLQbqglvl; _gali=submit',
+        'cookie': 'tmdb.prefs=%7B%22adult%22%3Atrue%2C%22i18n_fallback_language%22%3A%22en-US%22%2C%22locale%22%3A%22fr-FR%22%2C%22country_code%22%3A%22FR%22%2C%22timezone%22%3A%22Europe%2FParis%22%7D; tmdb._cookie_policy=true; _ga=GA1.2.1711610460.1609762488; _gid=GA1.2.1219848453.1609762488; _dc_gtm_UA-2087971-10=1; tmdb.session=AWdapYa_eQYX1I_-Pxpe_2qinsBku8VVk5NuIWQVpkjTrVIEKAT5lyLR2tTTwlCiBwTIgkrS5883slEve_OEMwYlQh2y5Ktsn3MIHhAeE4GdCQoU1mCN2HvcBFB5jjj56axjVTd1sftlnY3v3Zi3Aj9G8MjX-wJQE90yIqBeGVMTMzpe5niY4qDKtMUXumZptXdsCWWPbz4loe6ow9WQ1ZqPYb6wNMuQDI2U4Pa0bWS_s115ika0YYQny-z53CO6E3QAyLSI-p1wPYmsE270Y11Xm3LYHZ2eT42jJiD8iqwyaj7jvV0cNgdbpJ0f6ZzmgvKuxKytzn0FprbZ00Uf1aFaPPO1tARVNzYqhoZPkMWNIiO5LsBdMtiheJM_9RvTC6QWsP56AVSogx4YBWPazONp-n_22mRKXZgY7xDh_dQy5l5Pl4PpV-Ms8HvnWT-o5vHzjOeL2YO_ngbd_U2RQDgc7YyuCz6D_XQ0S8L4kai0yD1_GmJpbR-CLQ1dV24Ow9FDtdAsHiQtn9gD4feEbAzeQwMkLGqwNrRLNbuOkBRPQ77efz9J7Zpatp24Ti9sVXASws0NoA4l7TJFOmRHXoLivB_oaW0kfzzBUMn07EfNBEPPmjspI59kxTIhZUtUbpdQT4yk1QzIStnGGDscmhWcBoZiLglbWZGVJ8ehABvWbqs0Iz6moTH6ki7UXZJ_l_IcEo5p4j3gv48BmJ7fJSGITtuUjWwH4OJ1WvBOTIjPSKf0fdvY15hf8jdV19yfED4kGZYBKffsVXxlFz2te_jYbRquLfDXYTk_qmLGx2V2KnEHNhB_JPY2BIgab9jWfW4SdaNMZQInACAZ00NWHkSbr4i164R-YmYX5gm3Fu7D; _gali=submit',
+
     }
 
     # data = {
@@ -107,9 +110,9 @@ def main(args):
     # if 'original_title' in response:
     #  data['title'] = response['original_title']
     if 'title' in response:
-        data['fr_FR_translated_title'] = response['title']
+        data['fr_FR_translated_title'] = response['title'].replace("'", "’")
     if 'tagline' in response:
-        data['fr_FR_tagline'] = response['tagline']
+        data['fr_FR_tagline'] = response['tagline'].replace("'", "’")
     if 'homepage' in response:
         data['fr_FR_homepage'] = response['homepage']
 
@@ -123,23 +126,24 @@ def main(args):
         data['budget'] = str(response['budget'])
     if 'runtime' in response:
         data['fr_FR_runtime'] = str(response['runtime'])
-    if 'spoken_languages' in response:
-        spoken_languages = [entry['iso_639_1']
-                            for entry in response['spoken_languages']]
-        # print(spoken_languages)
-        data['spoken_languages[]'] = spoken_languages[0]
+#    if 'spoken_languages' in response:
+#        spoken_languages = [entry['iso_639_1']
+#                            for entry in response['spoken_languages']]
+#        # print(spoken_languages)
+#        data['spoken_languages[]'] = spoken_languages[0]
 
     print(json.dumps(data, indent=4, sort_keys=True))
 
     data2 = {
-        '$fr_FR_translated_title': 'H\xF4tel Transylvanie 2',
-        'fr_FR_tagline': 'Plus il y a de monstres, plus il y a de probl\xE8mes \\u0021',
-        'fr_FR_overview': 'Dracula est dor\xE9navant grand-p\xE8re et est bien d\xE9cid\xE9 \xE0 initier son petit gar\xE7on \xE0 la crini\xE8re rousse aux rudiments du monde de l\u2019\xE9pouvante. Bien s\xFBr, rien ne va se passer comme pr\xE9vu pour notre dr\xF4lissime vampire et sa bande de monstres : Frankenstein, la Momie, l\u2019Homme invisible, le Loup-garou et le Blob...',
-        'fr_FR_runtime': '90',
-        'revenue': '473226958',
-        'budget': '80000000',
-        'fr_FR_homepage': '',
-        'spoken_languages[]': 'en'
+        'iso_639_1': 'en',
+        'fr_FR_translated_title': 'Les cinq l\xE9gendes',
+        'fr_FR_tagline': 'D\xE9couvrez un monde de l\xE9gende...',
+        'fr_FR_overview': 'Il existe dans le monde, dissimul\xE9s aux yeux des humains, quatre \xEAtres surnaturels dot\xE9s de grands pouvoirs qui prot\xE8gent l\u2019innocence et l\u2019imaginaire des enfants : le P\xE8re No\xEBl, le Lapin de P\xE2ques, la F\xE9e des dents et le Marchand de sable. Lorsqu\u2019ils d\xE9couvrent que Pitch, un esprit mal\xE9fique, \u0153uvre pour r\xE9pandre ruine et destruction sur le monde, ils r\xE9alisent que m\xEAme en unissant leurs forces, ils ne seront pas de taille. Aussi tentent-ils de rallier \xE0 leur cause Jack Frost, un jeune gar\xE7on insouciant et solitaire qui ma\xEEtrise le givre et le froid. Ce combat va permettre \xE0 Jack de comprendre quelle est sa place dans l\u2019ordre de l\u2019univers...',
+        'video': '0',
+        'fr_FR_runtime': '97',
+        'revenue': '306941670',
+        'budget': '145000000',
+        'fr_FR_homepage': ''
     }
 
     print(json.dumps(data2, indent=4, sort_keys=True))
