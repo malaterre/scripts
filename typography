@@ -43,7 +43,8 @@ def diff_strings2(old, new):
     codes = difflib.SequenceMatcher(a=old, b=new).get_opcodes()
     for code in codes:
         if code[0] == "equal":
-            result += white(old[code[1]:code[2]])
+            #result += white(old[code[1]:code[2]])
+            result += black(old[code[1]:code[2]])
         elif code[0] == "delete":
             result += red(old[code[1]:code[2]])
         elif code[0] == "insert":
@@ -128,6 +129,7 @@ def main(args):
     overview_old = response['overview']
     overview_new = overview_old.replace("  ", " ").replace("'", "’").replace(
         '"', '«', 1).replace('"', '»', 1)
+    #overview_new = smartypants.smartypants(overview_new)
 
     # print(overview_old)
     # print(overview_new)
@@ -137,6 +139,7 @@ def main(args):
     # print('\n'.join(diff))
     # print(red("coucou"))
     print(diff_strings2(overview_old, overview_new))
+    print(Fore.RESET)
 
     root_url = 'https://www.themoviedb.org/movie/'
     #    'referer': 'https://www.themoviedb.org/movie/9836-happy-feet/edit?active_nav_item=primary_facts',
@@ -157,8 +160,7 @@ def main(args):
         'sec-fetch-dest': 'empty',
         'referer': referer,
         'accept-language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
-        'cookie': 'tmdb.prefs=%7B%22adult%22%3Atrue%2C%22i18n_fallback_language%22%3A%22en-US%22%2C%22locale%22%3A%22fr-FR%22%2C%22country_code%22%3A%22FR%22%2C%22timezone%22%3A%22Europe%2FParis%22%7D; tmdb._cookie_policy=true; _ga=GA1.2.1711610460.1609762488; _gid=GA1.2.1219848453.1609762488; _dc_gtm_UA-2087971-10=1; tmdb.session=AWdapYa_eQYX1I_-Pxpe_2qinsBku8VVk5NuIWQVpkjTrVIEKAT5lyLR2tTTwlCiBwTIgkrS5883slEve_OEMwYlQh2y5Ktsn3MIHhAeE4GdCQoU1mCN2HvcBFB5jjj56axjVTd1sftlnY3v3Zi3Aj9G8MjX-wJQE90yIqBeGVMTMzpe5niY4qDKtMUXumZptXdsCWWPbz4loe6ow9WQ1ZqPYb6wNMuQDI2U4Pa0bWS_s115ika0YYQny-z53CO6E3QAyLSI-p1wPYmsE270Y11Xm3LYHZ2eT42jJiD8iqwyaj7jvV0cNgdbpJ0f6ZzmgvKuxKytzn0FprbZ00Uf1aFaPPO1tARVNzYqhoZPkMWNIiO5LsBdMtiheJM_9RvTC6QWsP56AVSogx4YBWPazONp-n_22mRKXZgY7xDh_dQy5l5Pl4PpV-Ms8HvnWT-o5vHzjOeL2YO_ngbd_U2RQDgc7YyuCz6D_XQ0S8L4kai0yD1_GmJpbR-CLQ1dV24Ow9FDtdAsHiQtn9gD4feEbAzeQwMkLGqwNrRLNbuOkBRPQ77efz9J7Zpatp24Ti9sVXASws0NoA4l7TJFOmRHXoLivB_oaW0kfzzBUMn07EfNBEPPmjspI59kxTIhZUtUbpdQT4yk1QzIStnGGDscmhWcBoZiLglbWZGVJ8ehABvWbqs0Iz6moTH6ki7UXZJ_l_IcEo5p4j3gv48BmJ7fJSGITtuUjWwH4OJ1WvBOTIjPSKf0fdvY15hf8jdV19yfED4kGZYBKffsVXxlFz2te_jYbRquLfDXYTk_qmLGx2V2KnEHNhB_JPY2BIgab9jWfW4SdaNMZQInACAZ00NWHkSbr4i164R-YmYX5gm3Fu7D; _gali=submit',
-
+        'cookie': 'tmdb.prefs=%7B%22adult%22%3Atrue%2C%22i18n_fallback_language%22%3A%22en-US%22%2C%22locale%22%3A%22fr-FR%22%2C%22country_code%22%3A%22FR%22%2C%22timezone%22%3A%22Europe%2FParis%22%7D; tmdb._cookie_policy=true; _ga=GA1.2.1525068671.1609834717; _gid=GA1.2.1940854375.1609834717; _dc_gtm_UA-2087971-10=1; tmdb.session=AYQ2uYSBR0jYFjuDwxrjE6HnWMgVt9WRuewUOkWn_B0804FolVluSjx9M_--nuubjiCsmKNhFy5Q7JYggVjq1PwjV_fNuxnRtJI00ZXD-wTwWRRuUrIb_m8WCYOVsXQyJ56oZ0H81W2T6fgc0NgJjfuGnRGodOagwqnfZvBitVMmU5XdEp3Pjrq9JmX_dtctqN5sewmX1nh6p6Pu2mulnECt7FSiQzTWVDs8eCn77T41L-ta-d6HTJvyGJZBW_D4AVE4XmbsgUmkiQAoQenkSRtEsXvbujJglvch8R-SL6qRwvf7I1I2ZZKN_56NKuvpI9aV_kydSM0oJK8FOu0v4rnZlvFM1uSC0bZBwcDrEAApSSD-_xifNnub3ClNHXmxqOgHN_OWZsmVnFrZoHis4eUhU7ryRI1jN0TpltcuxGh5LdNhiIJFsBlTEJGVB1BCw9fnDZ8P-_lGKizUEnr60nlet0DVX2WF85st19DeMZ63eTlXZPFBnuWToLbyWmmQVSWhiWixhUmgp5VyS8BxgcCoEuLdzwLapRkgGWry1xo6EyPnKuTvN3TiH1amBLrxPPIRdWYQ0qcb-lBS68RlKYrxPAps8AV5mZBolUyEAGjGIql_DGl-n1dE6GS12iZmxrZhKJY7Ncpyvh1qG9nlss_-ufeuLeXqy5MnS0hfwsmgG-M7d06ZyNF2dIS-o86Xa3KNIr_fal3q2dt-wM0CrWMAIOPZBFGGsHAfsl3g32RfYj3xLN0orRnQJ41rWnjj2Xb1tKtrXGqJxsJRzLsS3oD7vj_6WjYIv61nDfQuPB5luwzrE5xiVXd0-znmssWjbsZGQjPO-D9RjhqtN7KSBh-SzCjzQJJh8Qu-m4jofdZk; _gali=submit',
     }
 
     # data = {
@@ -190,7 +192,7 @@ def main(args):
         #    'spoken_languages[]': spoken_languages[0]
     }
     # if 'original_title' in response:
-    #  data['title'] = response['original_title']
+    #    data['title'] = response['original_title']
     if 'title' in response:
         data['fr_FR_translated_title'] = response['title'].replace("'", "’")
     if 'tagline' in response:
@@ -198,38 +200,42 @@ def main(args):
     if 'homepage' in response:
         data['fr_FR_homepage'] = response['homepage']
 
+    # data['_type'] = 'Movie' # FIXME '69016'
     # if 'status' in response:
-    #  data['status'] = response['status']
+    #    data['status'] = response['status']
     # if 'adult' in response:
     #  data['adult'] = 1 if response['adult'] else 0
+    #if 'video' in response:
+    #    data['video'] = "1" if response['video'] else "0"
     if 'revenue' in response:
         data['revenue'] = str(response['revenue'])
     if 'budget' in response:
         data['budget'] = str(response['budget'])
     if 'runtime' in response:
         data['fr_FR_runtime'] = str(response['runtime'])
-#    if 'spoken_languages' in response:
-#        spoken_languages = [entry['iso_639_1']
-#                            for entry in response['spoken_languages']]
-#        # print(spoken_languages)
-#        data['spoken_languages[]'] = spoken_languages[0]
+    if 'spoken_languages' in response:
+        spoken_languages = [entry['iso_639_1']
+                            for entry in response['spoken_languages']]
+        # print(spoken_languages)
+        if len(spoken_languages) == 1:
+            data['spoken_languages[]'] = spoken_languages[0]
+        else:
+            print(spoken_languages)
 
     if verbose:
         print(json.dumps(data, indent=4, sort_keys=True))
 
     data2 = {
-        'iso_639_1': 'en',
-        'fr_FR_translated_title': 'Les cinq l\xE9gendes',
-        'fr_FR_tagline': 'D\xE9couvrez un monde de l\xE9gende...',
-        'fr_FR_overview': 'Il existe dans le monde, dissimul\xE9s aux yeux des humains, quatre \xEAtres surnaturels dot\xE9s de grands pouvoirs qui prot\xE8gent l\u2019innocence et l\u2019imaginaire des enfants : le P\xE8re No\xEBl, le Lapin de P\xE2ques, la F\xE9e des dents et le Marchand de sable. Lorsqu\u2019ils d\xE9couvrent que Pitch, un esprit mal\xE9fique, \u0153uvre pour r\xE9pandre ruine et destruction sur le monde, ils r\xE9alisent que m\xEAme en unissant leurs forces, ils ne seront pas de taille. Aussi tentent-ils de rallier \xE0 leur cause Jack Frost, un jeune gar\xE7on insouciant et solitaire qui ma\xEEtrise le givre et le froid. Ce combat va permettre \xE0 Jack de comprendre quelle est sa place dans l\u2019ordre de l\u2019univers...',
-        'video': '0',
-        'fr_FR_runtime': '97',
-        'revenue': '306941670',
-        'budget': '145000000',
+        '$fr_FR_translated_title': 'Madagascar',
+        'fr_FR_tagline': '',
+        'fr_FR_overview': 'Lorsqu\'un lion, un z\xE8bre, une girafe, un hippopotame et une poign\xE9e de pingouins psychotiques fuient leur zoo new-yorkais pour secourir l\'un des leurs, l\'aventure s\'\xE9crit avec un grand A. Et lorsque le destin les r\xE9unit sur l\u2019\xEEle de Madagascar, ils doivent apprendre en formation acc\xE9l\xE9r\xE9e les rudiments de la vie \xE0 l\'air libre.',
+        'fr_FR_runtime': '86',
+        'revenue': '542063846',
+        'budget': '75000000',
         'fr_FR_homepage': ''
     }
 
-    #print(json.dumps(data2, indent=4, sort_keys=True))
+    print(json.dumps(data2, indent=4, sort_keys=True))
 
     # 'https://www.themoviedb.org/movie/9836-happy-feet/remote/primary_facts', headers=headers, data=data)
     primary_facts = get_location(
