@@ -205,7 +205,7 @@ def main(args):
     #    data['status'] = response['status']
     # if 'adult' in response:
     #  data['adult'] = 1 if response['adult'] else 0
-    #if 'video' in response:
+    # if 'video' in response:
     #    data['video'] = "1" if response['video'] else "0"
     if 'revenue' in response:
         data['revenue'] = str(response['revenue'])
@@ -221,19 +221,22 @@ def main(args):
             data['spoken_languages[]'] = spoken_languages[0]
         else:
             print(spoken_languages)
+            sys.exit(1)
 
     if verbose:
         print(json.dumps(data, indent=4, sort_keys=True))
 
-    data2 = {
-        '$fr_FR_translated_title': 'Madagascar',
-        'fr_FR_tagline': '',
-        'fr_FR_overview': 'Lorsqu\'un lion, un z\xE8bre, une girafe, un hippopotame et une poign\xE9e de pingouins psychotiques fuient leur zoo new-yorkais pour secourir l\'un des leurs, l\'aventure s\'\xE9crit avec un grand A. Et lorsque le destin les r\xE9unit sur l\u2019\xEEle de Madagascar, ils doivent apprendre en formation acc\xE9l\xE9r\xE9e les rudiments de la vie \xE0 l\'air libre.',
-        'fr_FR_runtime': '86',
-        'revenue': '542063846',
-        'budget': '75000000',
-        'fr_FR_homepage': ''
-    }
+    data2 = [
+        ('$fr_FR_translated_title', 'Shrek 4, il \xE9tait une fin'),
+        ('fr_FR_tagline', '\xC7a va d\xE9coiffer \\u0021'),
+        ('fr_FR_overview', 'Apr\xE8s avoir vaincu un m\xE9chant dragon, sauv\xE9 une belle princesse et le royaume de ses parents, que peut encore faire un ogre malodorant et mal l\xE9ch\xE9 ? Domestiqu\xE9, assagi, Shrek a perdu jusqu\u2019\xE0 l\u2019envie de rugir et regrette le bon vieux temps o\xF9 il semait la terreur dans le royaume. Aujourd\u2019hui, tel une idole d\xE9chue, il se contente de signer des autographes \xE0 tour de bras. Trop triste... C\u2019est alors que l\u2019habile et sournois Tracassin lui propose un contrat. Shrek se retrouve soudain transport\xE9 dans un monde parall\xE8le totalement d\xE9jant\xE9 o\xF9 les ogres sont pourchass\xE9s, o\xF9 Tracassin est roi, o\xF9 Fiona et son bien-aim\xE9 ne se jamais rencontr\xE9s...Shrek va-t-il r\xE9ussir \xE0 d\xE9jouer le sortil\xE8ge, \xE0 repasser de l\u2019autre c\xF4t\xE9 du miroir, \xE0 sauver ses amis, \xE0 retrouver son monde et reconqu\xE9rir l\u2019amour de sa vie ?'),
+        ('fr_FR_runtime', '93'),
+        ('revenue', '752600867'),
+        ('budget', '165000000'),
+        ('fr_FR_homepage', 'https://www.dreamworks.com/movies/shrek'),
+        ('spoken_languages[]', 'en'),
+        ('spoken_languages[]', 'pt'),
+    ]
 
     print(json.dumps(data2, indent=4, sort_keys=True))
 
