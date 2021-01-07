@@ -13,9 +13,16 @@ with open(filename) as nfo_xml:
         title = movie.title.string
         mid = movie.id.string
         plot = movie.plot.string
-        #if '"' in plot:
+        tagline = movie.tagline.string
+        #if tagline and 'oe' in tagline:
+        #    print(tagline)
+        #    print(mid)
+        #if 'oe' in plot: # or 'oe' in tagline:
         #    print(title)
-        if "'" in plot:
+        if '"' in plot:
+            print(title)
             print(mid)
+        #if "'" in plot:
+        #    print(mid)
     #nfo_title = self.nfo.title.string
     #nfo_year = self.nfo.year.string
