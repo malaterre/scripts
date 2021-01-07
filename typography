@@ -130,7 +130,7 @@ def main(args):
         print(json.dumps(response, indent=4, sort_keys=True))
     overview_old = response['overview']
     overview_new = overview_old.replace("  ", " ").replace("'", "’").replace(
-        '"', '«', 1).replace('"', '»', 1)
+        '"', '«', 1).replace('"', '»', 1).replace("...", "…")
     #overview_new = smartypants.smartypants(overview_new)
 
     # print(overview_old)
