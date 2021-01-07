@@ -89,6 +89,7 @@ def get_location(url):
 def main(args):
     verbose = args.verbose
     movie_id = args.movie_id
+    lang = args.lang
 
     tmdb.API_KEY = '800fd6556557cf00577e6f28190b26a8'
     tmdb.debug = True
@@ -123,6 +124,7 @@ def main(args):
     # movie_id = 336313
     # movie_id = 9836
     identity = tmdb.Movies(movie_id)
+    # TODO: &append_to_response=genre
     response = identity.info(language='fr-FR')
     if verbose:
         print(json.dumps(response, indent=4, sort_keys=True))
@@ -200,7 +202,7 @@ def main(args):
     if 'homepage' in response:
         data['fr_FR_homepage'] = response['homepage']
 
-    # data['_type'] = 'Movie' # FIXME '69016'
+    # data['_type'] = 'Movie' # FIXME '69016' / 810
     # if 'status' in response:
     #    data['status'] = response['status']
     # if 'adult' in response:
@@ -221,7 +223,8 @@ def main(args):
             data['spoken_languages[]'] = spoken_languages[0]
         else:
             print(spoken_languages)
-            sys.exit(1)
+            if not lang:
+                sys.exit(1)
 
     if verbose:
         print(json.dumps(data, indent=4, sort_keys=True))
@@ -306,6 +309,8 @@ if __name__ == "__main__":
     parser.add_argument("--dry-run",
                         help="dry run", action='store_true')
     # verbose
+    parser.add_argument("--lang",
+                        help="verbose output", action='store_true')
     parser.add_argument("--verbose",
                         help="verbose output", action='store_true')
     main(parser.parse_args())
