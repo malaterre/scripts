@@ -3,6 +3,7 @@
 # ./noapos /tmp/kodi_videodb_2021-01-04/videodb.xml
 
 import sys
+import re
 from bs4 import BeautifulSoup
 
 filename = sys.argv[1]
@@ -19,10 +20,24 @@ with open(filename) as nfo_xml:
         #    print(mid)
         #if 'oe' in plot: # or 'oe' in tagline:
         #    print(title)
-        if '"' in plot:
-            print(title)
-            print(mid)
-        #if "'" in plot:
+        #if '"' in plot:
+        #    print(title)
         #    print(mid)
+        #elif "'" in plot:
+        #    print(title)
+        #    print(mid)
+        # XXᵉ siècle
+        #if "siècle" in plot:
+        #    print(plot)
+        #    print(mid)
+        # https://fr.wikipedia.org/wiki/Tiret
+        # tiret court hypen "‐" (U+2010)  trait d’union
+        if re.match(r'.*[^ ]+-[^ ]+.*', plot):
+            print(plot)
+            print(mid)
+        # tiret moyen "–" (U+2013) Proposition incise
+        if " - " in plot:
+            print(plot)
+            print(mid)
     #nfo_title = self.nfo.title.string
     #nfo_year = self.nfo.year.string

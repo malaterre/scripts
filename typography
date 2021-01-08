@@ -86,6 +86,10 @@ def get_location(url):
 #            yield line
 
 
+def cleanup(instr):
+    return instr.replace("  ", " ").replace("'", "’").replace(
+        '"', '«', 1).replace('"', '»', 1).replace("...", "…")
+
 def main(args):
     verbose = args.verbose
     movie_id = args.movie_id
@@ -129,12 +133,12 @@ def main(args):
     if verbose:
         print(json.dumps(response, indent=4, sort_keys=True))
     overview_old = response['overview']
-    overview_new = overview_old.replace("  ", " ").replace("'", "’").replace(
-        '"', '«', 1).replace('"', '»', 1).replace("...", "…")
+    overview_new = cleanup(overview_old)
     #overview_new = smartypants.smartypants(overview_new)
 
     # print(overview_old)
-    # print(overview_new)
+    if verbose:
+     print(overview_new)
     #diff = difflib.ndiff(overview_old, overview_new)
     # print('\n'.join(diff))
     #diff = color_diff(diff)
@@ -196,9 +200,9 @@ def main(args):
     # if 'original_title' in response:
     #    data['title'] = response['original_title']
     if 'title' in response:
-        data['fr_FR_translated_title'] = response['title'].replace("'", "’")
+        data['fr_FR_translated_title'] = cleanup(response['title'])
     if 'tagline' in response:
-        data['fr_FR_tagline'] = response['tagline'].replace("'", "’")
+        data['fr_FR_tagline'] = cleanup(response['tagline'])
     if 'homepage' in response:
         data['fr_FR_homepage'] = response['homepage']
 
@@ -241,7 +245,7 @@ def main(args):
         ('spoken_languages[]', 'pt'),
     ]
 
-    print(json.dumps(data2, indent=4, sort_keys=True))
+    #print(json.dumps(data2, indent=4, sort_keys=True))
 
     # 'https://www.themoviedb.org/movie/9836-happy-feet/remote/primary_facts', headers=headers, data=data)
     primary_facts = get_location(
