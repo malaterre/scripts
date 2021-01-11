@@ -32,12 +32,13 @@ with open(filename) as nfo_xml:
         #    print(mid)
         # https://fr.wikipedia.org/wiki/Tiret
         # tiret court hypen "‐" (U+2010)  trait d’union
-        if re.match(r'.*[^ ]+-[^ ]+.*', plot):
+        #if re.match(r'.*[^ ]+-[^ ]+.*', plot):
+        if "-" in plot and not " - " in plot:
             print(plot)
             print(mid)
         # tiret moyen "–" (U+2013) Proposition incise
-        if " - " in plot:
-            print(plot)
-            print(mid)
+        #if " - " in plot:
+        #    print(plot)
+        #    print(mid)
     #nfo_title = self.nfo.title.string
     #nfo_year = self.nfo.year.string
