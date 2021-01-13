@@ -12,6 +12,9 @@ import urllib.parse
 from slimit import ast
 from slimit.parser import Parser
 from slimit.visitors import nodevisitor
+# https://stackoverflow.com/questions/44503833/python-slimit-minimizer-unwanted-warning-output
+import logging
+# FIXME: slimit replaced by python3-calmjs in Debian/sid
 
 
 def cleanup(s):
@@ -157,6 +160,50 @@ def get_location(url):
     return response.url
 
 
+def get_spoken_languages_from_script(script):
+    fields = None
+    logging.disable(logging.CRITICAL)
+    parser = Parser()
+    # https://github.com/rspivak/slimit/blob/master/src/slimit/ast.py
+    tree = parser.parse(script.text)
+    for node in nodevisitor.visit(tree):
+        # ast.FunctionCall
+        if isinstance(node, ast.FunctionCall):
+            # slimit.ast.DotAccessor
+            if isinstance(node.identifier, ast.DotAccessor):
+                assert isinstance(node.identifier.identifier, ast.Identifier)
+                if isinstance(node.identifier.identifier, ast.Identifier):
+                    if node.identifier.identifier.value == 'kendoMultiSelect':
+                        assert isinstance(node.args, list)
+                        assert len(node.args) == 1
+                        assert isinstance(node.args[0], ast.Object)
+                        for properties in node.args[0].properties:
+                            # slimit.ast.Assign
+                            assert isinstance(properties, ast.Assign)
+                            if isinstance(properties, ast.Assign):
+                                if properties.left.value == 'value':
+                                    fields = []
+                                    for child in properties.right.children():
+                                        assert isinstance(child, ast.Object)
+                                        cc = child.properties
+                                        assert len(cc) == 1
+                                        assert isinstance(cc[0], ast.Assign)
+                                        if isinstance(cc[0], ast.Assign):
+                                            cclid = cc[0].left
+                                            ccrid = cc[0].right
+                                            assert isinstance(
+                                                cclid, ast.Identifier)
+                                            assert isinstance(
+                                                ccrid, ast.String)
+                                            assert cclid.value == 'iso_639_1'
+                                            assert len(ccrid.value) >= 2
+                                            # remove extra quotes char '"'
+                                            s = ccrid.value[1:-1]
+                                            fields.append(s)
+    logging.disable(logging.NOTSET)
+    return fields
+
+
 def main(args):
     verbose = args.verbose
     movie_id = args.movie_id
@@ -185,57 +232,21 @@ def main(args):
     headers['cookie'] = cookie_string
     r = requests.get(url, headers=headers)
     soup = bs.BeautifulSoup(r.content, 'html.parser')
-    if verbose:
-        print(soup.prettify())
+    # if verbose:
+    #    print(soup.prettify())
     # print(soup.find(id='primary_facts_form'))
     pff = soup.find(id='primary_facts_form')
     # if verbose:
     #    print(pff.prettify())
     #pff_next = pff.next_element
     pff_script = pff.find_next('script', type="text/javascript")
-    if verbose:
-        print(pff_script)
-        parser = Parser()
-        tree = parser.parse(pff_script.text)
-        # fields = {getattr(node.left, 'value', ''): getattr(node.right, 'value', '')
-        #   for node in nodevisitor.visit(tree)
-        #   if isinstance(node, ast.Assign)}
-        # print(fields)
-        for node in nodevisitor.visit(tree):
-            # ast.FunctionCall
-            if isinstance(node, ast.FunctionCall):
-                # slimit.ast.DotAccessor
-                if isinstance(node.identifier, ast.DotAccessor):
-                    if isinstance(node.identifier.identifier, ast.Identifier):
-                        if node.identifier.identifier.value == 'kendoMultiSelect':
-                            print(node.to_ecma())
-                            print(node.identifier.identifier.value)
-                            assert len(node.args) == 1
-                            for properties in node.args[0].properties:
-                                # slimit.ast.Assign
-                                if isinstance(properties, ast.Assign):
-                                    if properties.left.value == 'value':
-                                        for child in properties.right.children():
-                                            print(child)
-                                            assert isinstance(
-                                                child, ast.Object)
-                                            #cc= child.children()
-                                            cc = child.properties
-                                            # slimit.ast.Assign
-                                            print(cc)
-                                            assert len(cc) == 1
-                                            assert isinstance(
-                                                cc[0], ast.Assign)
-                                            if isinstance(cc[0], ast.Assign):
-                                                cclid = cc[0].left
-                                                ccrid = cc[0].right
-                                                assert isinstance(
-                                                    cclid, ast.Identifier)
-                                                assert isinstance(
-                                                    ccrid, ast.String)
-                                                print(cclid.value)
-                                                print(ccrid.value)
+    # if verbose:
+    #     print(pff_script)
+    spoken_languages = get_spoken_languages_from_script(pff_script)
+    # print(spoken_languages)
     data = extract_form_fields(pff)
+    if "spoken_languages[]" in data:
+        data["spoken_languages[]"] = spoken_languages
 
     if verbose:
         print(json.dumps(data, indent=4, sort_keys=True))
