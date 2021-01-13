@@ -8,24 +8,83 @@ import json
 import bs4 as bs
 #from http import cookies
 import urllib.parse
+# https://stackoverflow.com/questions/25111752/extracting-text-from-script-tag-using-beautifulsoup-in-python
+from slimit import ast
+from slimit.parser import Parser
+from slimit.visitors import nodevisitor
 
 
-def extract_form_fields(soup):
+def cleanup(s):
+    return s.replace("  ", " ").replace("'", "’").replace(
+        '"', '«', 1).replace('"', '»', 1).replace("...", "…")
+
+
+SIMPLE_INPUT_TYPES = ('text', 'hidden', 'password', 'submit',
+                      'image', 'search', 'number', 'email', 'url')
+
+
+def extract_form_fields(soup):  # pragma: no cover  # noqa (C901)
+    # Based on https://gist.github.com/simonw/104413
     "Turn a BeautifulSoup form in to a dict of fields and default values"
     fields = {}
-    # for input in soup.findAll('input'):
-    pff = soup.find(id='primary_facts_form')
-    #  print(input)
-    # for input in pff.find(id='primary_facts_form')
-    for input in pff.findAll('input'):
-        # pff = pff.find(id='primary_facts_form'):
+    for input in soup.findAll('input'):
+        name = input.get("name")
+        value = input.get("value")
+        type = input.get("type", "text")
+        if not name:
+            continue
+
+        if type in SIMPLE_INPUT_TYPES:
+            fields[name] = value
+            continue
+
+        if type in ('checkbox', 'radio'):
+            if input.get('checked'):
+                value = (value or "on")
+
+            if value:
+                fields[name] = value
+            else:
+                fields.setdefault(name, value)
+            continue
+
+        assert False, 'input type %s not supported' % type
+
+    for textarea in soup.findAll('textarea'):
+        name = textarea.get("name")
+        if name:
+            fields[name] = (textarea.string or '')
+
+    # select fields
+    for select in soup.findAll('select'):
+        options = select.findAll('option')
+        selected_options = [
+            option for option in options
+            if option.has_attr('selected')
+        ]
+
+        if not selected_options and options:
+            selected_options = [options[0]]
+
+        value = [option['value']
+                 for option in selected_options if option["value"]]
+
+        fields[select['name']] = value
+
+    return fields
+
+
+def extract_form_fields2(soup):
+    "Turn a BeautifulSoup form in to a dict of fields and default values"
+    fields = {}
+    for input in soup.findAll('input'):
         # ignore submit/image with no name attribute
         if not 'type' in input:
             continue
         if input['type'] in ('submit', 'image') and not 'name' in input:
             continue
 
-        # single element nome/value fields
+        # single element name/value fields
         if input['type'] in ('text', 'hidden', 'password', 'submit', 'image'):
             value = ''
             if 'value' in input:
@@ -102,6 +161,7 @@ def main(args):
     verbose = args.verbose
     movie_id = args.movie_id
     lang = args.lang
+    dry_run = args.dry_run
 
     # url = 'https://www.themoviedb.org/movie/366644-little-door-gods/edit?active_nav_item=primary_facts'
     root_url = 'https://www.themoviedb.org/movie/'
@@ -109,7 +169,7 @@ def main(args):
     url = get_location(root_url + str(movie_id)) + \
         '/edit?active_nav_item=primary_facts'
     if verbose:
-        print(referer)
+        print(url)
 
     headers = requests.utils.default_headers()
     tmdb_session = os.environ['TMDB_SESSION']
@@ -125,10 +185,66 @@ def main(args):
     headers['cookie'] = cookie_string
     r = requests.get(url, headers=headers)
     soup = bs.BeautifulSoup(r.content, 'html.parser')
-    # print(soup.prettify())
+    if verbose:
+        print(soup.prettify())
     # print(soup.find(id='primary_facts_form'))
-    ret = extract_form_fields(soup)
-    print(ret)
+    pff = soup.find(id='primary_facts_form')
+    # if verbose:
+    #    print(pff.prettify())
+    #pff_next = pff.next_element
+    pff_script = pff.find_next('script', type="text/javascript")
+    if verbose:
+        print(pff_script)
+        parser = Parser()
+        tree = parser.parse(pff_script.text)
+        # fields = {getattr(node.left, 'value', ''): getattr(node.right, 'value', '')
+        #   for node in nodevisitor.visit(tree)
+        #   if isinstance(node, ast.Assign)}
+        # print(fields)
+        for node in nodevisitor.visit(tree):
+            # ast.FunctionCall
+            if isinstance(node, ast.FunctionCall):
+                # slimit.ast.DotAccessor
+                if isinstance(node.identifier, ast.DotAccessor):
+                    if isinstance(node.identifier.identifier, ast.Identifier):
+                        if node.identifier.identifier.value == 'kendoMultiSelect':
+                            print(node.to_ecma())
+                            print(node.identifier.identifier.value)
+                            assert len(node.args) == 1
+                            for properties in node.args[0].properties:
+                                # slimit.ast.Assign
+                                if isinstance(properties, ast.Assign):
+                                    if properties.left.value == 'value':
+                                        for child in properties.right.children():
+                                            print(child)
+                                            assert isinstance(
+                                                child, ast.Object)
+                                            #cc= child.children()
+                                            cc = child.properties
+                                            # slimit.ast.Assign
+                                            print(cc)
+                                            assert len(cc) == 1
+                                            assert isinstance(
+                                                cc[0], ast.Assign)
+                                            if isinstance(cc[0], ast.Assign):
+                                                cclid = cc[0].left
+                                                ccrid = cc[0].right
+                                                assert isinstance(
+                                                    cclid, ast.Identifier)
+                                                assert isinstance(
+                                                    ccrid, ast.String)
+                                                print(cclid.value)
+                                                print(ccrid.value)
+    data = extract_form_fields(pff)
+
+    if verbose:
+        print(json.dumps(data, indent=4, sort_keys=True))
+
+    primary_facts = get_location(
+        root_url + str(movie_id)) + '/remote/primary_facts'
+    if not dry_run:
+        response = requests.post(primary_facts, headers=headers, data=data)
+        print(response)
 
 
 if __name__ == "__main__":
