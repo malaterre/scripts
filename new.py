@@ -4,9 +4,9 @@ import argparse
 import requests
 import os
 import json
-#from bs4 import BeautifulSoup
+# from bs4 import BeautifulSoup
 import bs4 as bs
-#from http import cookies
+# from http import cookies
 import urllib.parse
 # https://stackoverflow.com/questions/25111752/extracting-text-from-script-tag-using-beautifulsoup-in-python
 from slimit import ast
@@ -18,8 +18,18 @@ import logging
 
 
 def cleanup(s):
-    return s.replace("  ", " ").replace("'", "’").replace(
-        '"', '«', 1).replace('"', '»', 1).replace("...", "…")
+    s = replace("'", "’").replace("...", "…")
+    while s.count("  ") > 0:
+        s = s.replace("  ", " ")
+    while s.count('"') > 0 and s.count('"') % 2 == 0:
+        s = s.replace('"', '«', 1).replace('"', '»', 1)
+    # tiret moyen "–" (U+2013) Proposition incise
+    while " - " in s:
+        s = s.replace(" - ", " – ")
+    # tiret court hypen "‐" (U+2010)  trait d’union
+    while "-" in plot:
+        s = s.replace("-", "‐")
+    return s
 
 
 SIMPLE_INPUT_TYPES = ('text', 'hidden', 'password', 'submit',
@@ -238,7 +248,7 @@ def main(args):
     pff = soup.find(id='primary_facts_form')
     # if verbose:
     #    print(pff.prettify())
-    #pff_next = pff.next_element
+    # pff_next = pff.next_element
     pff_script = pff.find_next('script', type="text/javascript")
     # if verbose:
     #     print(pff_script)
@@ -247,6 +257,13 @@ def main(args):
     data = extract_form_fields(pff)
     if "spoken_languages[]" in data:
         data["spoken_languages[]"] = spoken_languages
+
+    if 'fr_FR_translated_title' in data:
+        data['fr_FR_translated_title'] = cleanup(
+            data['fr_FR_translated_title'])
+    if 'fr_FR_overview' in data:
+        data['fr_FR_overview'] = cleanup(
+            data['fr_FR_overview'])
 
     if verbose:
         print(json.dumps(data, indent=4, sort_keys=True))
