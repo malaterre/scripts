@@ -19,7 +19,7 @@ import logging
 
 
 def cleanup(s):
-    s = replace("'", "’").replace("...", "…")
+    s = s.replace("'", "’").replace("...", "…")
     while s.count("  ") > 0:
         s = s.replace("  ", " ")
     while s.count('"') > 0 and s.count('"') % 2 == 0:
@@ -28,7 +28,7 @@ def cleanup(s):
     while " - " in s:
         s = s.replace(" - ", " – ")
     # tiret court hypen "‐" (U+2010)  trait d’union
-    while "-" in plot:
+    while "-" in s:
         s = s.replace("-", "‐")
     return s
 
@@ -259,21 +259,27 @@ def main(args):
     if "spoken_languages[]" in data:
         data["spoken_languages[]"] = spoken_languages
 
-    if 'fr_FR_translated_title' in data:
-        data['fr_FR_translated_title'] = cleanup(
-            data['fr_FR_translated_title'])
-    if 'fr_FR_overview' in data:
-        data['fr_FR_overview'] = cleanup(
-            data['fr_FR_overview'])
-
     if verbose:
         print(json.dumps(data, indent=4, sort_keys=True))
 
-    primary_facts = get_location(
-        root_url + str(movie_id)) + '/remote/primary_facts'
-    if not dry_run:
-        response = requests.post(primary_facts, headers=headers, data=data)
-        print(response)
+    newdata = data.copy()
+    if 'fr_FR_translated_title' in newdata:
+        newdata['fr_FR_translated_title'] = cleanup(
+            newdata['fr_FR_translated_title'])
+    if 'fr_FR_overview' in newdata:
+        newdata['fr_FR_overview'] = cleanup(
+            newdata['fr_FR_overview'])
+
+    if newdata != data:
+        if verbose:
+            print(json.dumps(newdata, indent=4, sort_keys=True))
+
+        primary_facts = get_location(
+            root_url + str(movie_id)) + '/remote/primary_facts'
+        if not dry_run:
+            response = requests.post(
+                primary_facts, headers=headers, data=newdata)
+            print(response)
 
 
 if __name__ == "__main__":
