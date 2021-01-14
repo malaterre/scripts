@@ -9,19 +9,22 @@ import json
 import bs4 as bs
 # from http import cookies
 import urllib.parse
-# https://stackoverflow.com/questions/25111752/extracting-text-from-script-tag-using-beautifulsoup-in-python
-from slimit import ast
-from slimit.parser import Parser
-from slimit.visitors import nodevisitor
 # https://stackoverflow.com/questions/44503833/python-slimit-minimizer-unwanted-warning-output
 import logging
 # FIXME: slimit replaced by python3-calmjs in Debian/sid
+# sudo apt-get install aspell-fr
 
 
 def cleanup(s):
     s = s.replace("'", "’").replace("...", "…")
     while s.count("  ") > 0:
         s = s.replace("  ", " ")
+    while " , " in s:
+        s = s.replace(" , ", ", ")
+    while " ; " in s:
+        s = s.replace(" ; ", "; ")
+    while " . " in s:
+        s = s.replace(" . ", ". ")
     while s.count('"') > 0 and s.count('"') % 2 == 0:
         s = s.replace('"', '«', 1).replace('"', '»', 1)
     # tiret moyen "–" (U+2013) Proposition incise
@@ -172,8 +175,13 @@ def get_location(url):
 
 
 def get_spoken_languages_from_script(script):
-    fields = None
     logging.disable(logging.CRITICAL)
+    # https://stackoverflow.com/questions/25111752/extracting-text-from-script-tag-using-beautifulsoup-in-python
+    from slimit import ast
+    from slimit.parser import Parser
+    from slimit.visitors import nodevisitor
+
+    fields = None
     parser = Parser()
     # https://github.com/rspivak/slimit/blob/master/src/slimit/ast.py
     tree = parser.parse(script.text)
@@ -269,6 +277,9 @@ def main(args):
     if 'fr_FR_overview' in newdata:
         newdata['fr_FR_overview'] = cleanup(
             newdata['fr_FR_overview'])
+    if 'fr_FR_tagline' in newdata:
+        newdata['fr_FR_tagline'] = cleanup(
+            newdata['fr_FR_tagline'])
 
     if newdata != data:
         if verbose:
@@ -280,6 +291,8 @@ def main(args):
             response = requests.post(
                 primary_facts, headers=headers, data=newdata)
             print(response)
+    else:
+        print('No diff')
 
 
 if __name__ == "__main__":

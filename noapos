@@ -4,9 +4,11 @@
 
 import sys
 import re
+import enchant
 from bs4 import BeautifulSoup
 
 filename = sys.argv[1]
+dict = enchant.Dict('fr_FR')
 with open(filename) as nfo_xml:
     videodb = BeautifulSoup(nfo_xml, 'lxml')
     # print(videodb.videodb.movie.title)
@@ -15,6 +17,16 @@ with open(filename) as nfo_xml:
         mid = movie.id.string
         plot = movie.plot.string
         tagline = movie.tagline.string
+        misspelled =[] 
+        words = plot.split()
+        for word in words: 
+         word = word.rstrip(',').rstrip('.').rstrip('…').lstrip('(').rstrip(')').strip(':').rstrip(';')
+         if word and dict.check(word) == False: 
+          misspelled.append(word) 
+        if misspelled:
+            #print(plot)
+            print(misspelled)
+            print(mid)
         #if tagline and 'oe' in tagline:
         #    print(tagline)
         #    print(mid)
@@ -33,9 +45,9 @@ with open(filename) as nfo_xml:
         # https://fr.wikipedia.org/wiki/Tiret
         # tiret court hypen "‐" (U+2010)  trait d’union
         #if re.match(r'.*[^ ]+-[^ ]+.*', plot):
-        if "-" in plot and not " - " in plot:
-            print(plot)
-            print(mid)
+        #if "-" in plot and not " - " in plot:
+        #    #print(plot)
+        #    print(mid)
         # tiret moyen "–" (U+2013) Proposition incise
         #if " - " in plot:
         #    print(plot)
