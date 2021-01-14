@@ -14,24 +14,27 @@ import logging
 # FIXME: slimit replaced by python3-calmjs in Debian/sid
 # sudo apt-get install aspell-fr
 
+# TODO: 'oe' without spell check ? (Eg. Joe Dalton)
 
 def cleanup(s):
     s = s.replace("'", "’").replace("...", "…")
-    while s.count("  ") > 0:
+    if "  " in s:
         s = s.replace("  ", " ")
-    while " , " in s:
+    if " , " in s:
         s = s.replace(" , ", ", ")
-    while " ; " in s:
+    if " : " in s:
+        s = s.replace(" : ", ": ")
+    if " ; " in s:
         s = s.replace(" ; ", "; ")
-    while " . " in s:
+    if " . " in s:
         s = s.replace(" . ", ". ")
     while s.count('"') > 0 and s.count('"') % 2 == 0:
         s = s.replace('"', '«', 1).replace('"', '»', 1)
     # tiret moyen "–" (U+2013) Proposition incise
-    while " - " in s:
+    if " - " in s:
         s = s.replace(" - ", " – ")
     # tiret court hypen "‐" (U+2010)  trait d’union
-    while "-" in s:
+    if "-" in s:
         s = s.replace("-", "‐")
     return s
 
