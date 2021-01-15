@@ -16,18 +16,12 @@ import logging
 
 # TODO: 'oe' without spell check ? (Eg. Joe Dalton)
 
+espace_insecable=' '
+espace_fine_insecable=' '
 def cleanup(s):
+    # https://archive.framalibre.org/article2225.html
     s = s.replace("'", "’").replace("...", "…")
-    if "  " in s:
-        s = s.replace("  ", " ")
-    if " , " in s:
-        s = s.replace(" , ", ", ")
-    if " : " in s:
-        s = s.replace(" : ", ": ")
-    if " ; " in s:
-        s = s.replace(" ; ", "; ")
-    if " . " in s:
-        s = s.replace(" . ", ". ")
+    # chevrons
     while s.count('"') > 0 and s.count('"') % 2 == 0:
         s = s.replace('"', '«', 1).replace('"', '»', 1)
     # tiret moyen "–" (U+2013) Proposition incise
@@ -36,6 +30,37 @@ def cleanup(s):
     # tiret court hypen "‐" (U+2010)  trait d’union
     if "-" in s:
         s = s.replace("-", "‐")
+    if "  " in s:
+        s = s.replace("  ", " ")
+    if " ," in s:
+        s = s.replace(" ,", ",")
+    # ellipse have been taken care of
+    if " ." in s:
+        s = s.replace(" .", ".")
+    if " ’" in s:
+        s = s.replace(" ’", "’")
+    if "’ " in s:
+        s = s.replace("’ ", "’")
+    # https://fr.wikipedia.org/wiki/Espace_ins%C3%A9cable#En_France
+    if " ;" in s:
+        s = s.replace(" ;", espace_fine_insecable + ";")
+    if " ?" in s:
+        s = s.replace(" ?", espace_fine_insecable + "?")
+    if " !" in s:
+        s = s.replace(" !", espace_fine_insecable + "!")
+    if " %" in s:
+        s = s.replace(" %", espace_fine_insecable + "%")
+    if " €" in s:
+        s = s.replace(" €", espace_fine_insecable + "€")
+    if " $" in s:
+        s = s.replace(" $", espace_fine_insecable + "$")
+    # exceptions:
+    if "« " in s:
+        s = s.replace("« ", "«" + espace_insecable )
+    if " »" in s:
+        s = s.replace(" »",  espace_insecable + "»" )
+    if " :" in s:
+        s = s.replace(" :", espace_insecable + ":")
     return s
 
 

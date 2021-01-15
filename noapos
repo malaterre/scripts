@@ -17,16 +17,17 @@ with open(filename) as nfo_xml:
         mid = movie.id.string
         plot = movie.plot.string
         tagline = movie.tagline.string
-        misspelled =[] 
-        words = plot.split()
-        for word in words: 
-         word = word.rstrip(',').rstrip('.').rstrip('…').lstrip('(').rstrip(')').strip(':').rstrip(';')
-         if word and dict.check(word) == False: 
-          misspelled.append(word) 
-        if misspelled:
-            #print(plot)
-            print(misspelled)
-            print(mid)
+        print(mid)
+        #misspelled =[] 
+        #words = plot.split()
+        #for word in words: 
+        # word = word.rstrip(',').rstrip('.').rstrip('…').lstrip('(').rstrip(')').strip(':').rstrip(';')
+        # if word and dict.check(word) == False: 
+        #  misspelled.append(word) 
+        #if misspelled:
+        #    #print(plot)
+        #    print(misspelled)
+        #    print(mid)
         #if tagline and 'oe' in tagline:
         #    print(tagline)
         #    print(mid)
