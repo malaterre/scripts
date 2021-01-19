@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+
+# ./checkvideoxml /tmp/kodi_videodb_2021-01-04/videodb.xml
+
+import sys
+import re
+import enchant
+from bs4 import BeautifulSoup
+import argparse
+
+
+def main(args):
+    filename = args.input
+    print_movie_id = args.print
+    word_spell = args.spell
+    oe = args.oe
+    curly = args.curly
+    dot = args.dot
+    dash = args.dash
+    super_e = args.e
+    if word_spell:
+        dict = enchant.Dict('fr_FR')
+    with open(filename) as nfo_xml:
+        videodb = BeautifulSoup(nfo_xml, 'lxml')
+        # print(videodb.videodb.movie.title)
+        for movie in videodb.videodb.find_all('movie'):
+            title = movie.title.string
+            mid = movie.id.string
+            plot = movie.plot.string
+            tagline = movie.tagline.string
+            if print_movie_id:
+                print(mid)
+            elif word_spell:
+                misspelled = set()
+                words = plot.split()
+                for word in words:
+                    word = word.rstrip(',').rstrip('.').rstrip(
+                        '…').lstrip('(').rstrip(')').strip(':').rstrip(';')
+                    if word and dict.check(word) == False:
+                        misspelled.add(word)
+                if misspelled:
+                    # print(plot)
+                    print(misspelled)
+                    print(mid)
+            elif oe:
+                if tagline and 'oe' in tagline:
+                    print(tagline)
+                    print(mid)
+                if 'oe' in plot:
+                    print(plot)
+                    print(mid)
+            elif curly:
+                if '"' in plot:
+                    print(title)
+                    print(mid)
+                elif "'" in plot:
+                    print(title)
+                    print(mid)
+            elif dot:
+                if plot[-1] not in ['.', '…', '!', '?']:
+                    print(plot)
+                    print(mid)
+            elif super_e:
+                    # XXᵉ siècle
+                if "siècle" in plot:
+                    print(plot)
+                    print(mid)
+            elif dash:
+                # https://fr.wikipedia.org/wiki/Tiret
+                # tiret court hypen "‐" (U+2010)  trait d’union
+                # if re.match(r'.*[^ ]+-[^ ]+.*', plot):
+                if "-" in plot and not " - " in plot:
+                    print(plot)
+                    print(mid)
+                # tiret moyen "–" (U+2013) Proposition incise
+                if " - " in plot:
+                    print(plot)
+                    print(mid)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="check videoxml export")
+    parser.add_argument("input", help='input videoxml')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--print', help='Print all movie ids',
+                       action='store_true')
+    group.add_argument(
+        '--spell', help='Simple word spell check for plot', action='store_true')
+    group.add_argument(
+        '--oe', help='Check oe', action='store_true')
+    group.add_argument(
+        '--curly', help='Check curly', action='store_true')
+    group.add_argument(
+        '--dash', help='Check dash', action='store_true')
+    group.add_argument(
+        '--dot', help='Check dot', action='store_true')
+    group.add_argument(
+        '--e', help='Check e', action='store_true')
+    parser.add_argument("--verbose",
+                        help="verbose output", action='store_true')
+    main(parser.parse_args())
