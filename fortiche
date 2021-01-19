@@ -23,6 +23,9 @@ tiret_court = '‐'
 
 
 def whitespacify(s):
+    if ".." in s or "'" in s:
+        print("ERROR", s)
+        sys.exit(1)
     # do not change whitespace around tirets
     s = s.replace(espace_insecable, ' ').replace(espace_fine_insecable, ' ')
     symbols = [',', '.', '’', ';', '?', '!', '%', '€', '$', '«', '»', ':']
@@ -30,7 +33,7 @@ def whitespacify(s):
         s = s.replace(symbol, ' ' + symbol + ' ')
     while "  " in s:
         s = s.replace("  ", " ")
-    return s
+    return s.strip()
 
 
 def cleanup(s):
@@ -49,6 +52,8 @@ def cleanup(s):
     # https://archive.framalibre.org/article2225.html
     if " ," in s:
         s = s.replace(" ,", ",")
+    if s[-2:] == ' …':
+        s = s[:-2] + "…"
     # ellipse have been taken care of
     if " ." in s:
         s = s.replace(" .", ".")
@@ -299,6 +304,8 @@ def main(args):
     # if verbose:
     #    print(pff.prettify())
     # pff_next = pff.next_element
+    if not pff:
+        print("ERROR:" + movie_id)
     pff_script = pff.find_next('script', type="text/javascript")
     # if verbose:
     #     print(pff_script)
