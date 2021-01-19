@@ -34,8 +34,8 @@ def main(args):
                 misspelled = set()
                 words = plot.split()
                 for word in words:
-                    word = word.rstrip(',').rstrip('.').rstrip(
-                        '…').lstrip('(').rstrip(')').strip(':').rstrip(';')
+                    word = word.rstrip('.').rstrip('…').lstrip(
+                        '(').rstrip(')').strip(':').rstrip(';').rstrip(',')
                     if word and dict.check(word) == False:
                         misspelled.add(word)
                 if misspelled:
@@ -61,8 +61,8 @@ def main(args):
                     print(plot)
                     print(mid)
             elif super_e:
-                    # XXᵉ siècle
-                if "siècle" in plot:
+                # XXᵉ siècle
+                if "siècle" in plot and not "ᵉ siècle" in plot:  # or "XX" in plot:
                     print(plot)
                     print(mid)
             elif dash:
