@@ -28,7 +28,7 @@ def whitespacify(s):
         sys.exit(1)
     # do not change whitespace around tirets
     s = s.replace(espace_insecable, ' ').replace(espace_fine_insecable, ' ')
-    symbols = [',', '.', '’', ';', '?', '!', '%', '€', '$', '«', '»', ':']
+    symbols = [',', '.', '’', ';', '?', '!', '%', '€', '$', '«', '»', ':', '°']
     for symbol in symbols:
         s = s.replace(symbol, ' ' + symbol + ' ')
     while "  " in s:
@@ -79,6 +79,9 @@ def cleanup(s):
         s = s.replace(" »",  espace_insecable + "»")
     if " :" in s:
         s = s.replace(" :", espace_insecable + ":")
+    # special:
+    if " ° " in s:
+        s = s.replace(" ° ", "°")
     return s
 
 
