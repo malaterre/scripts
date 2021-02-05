@@ -1,2 +1,7 @@
 fix chapter with title in mp4 generation
 https://stackoverflow.com/questions/48930386/discard-data-stream-from-container-using-ffmpeg
+
+Remove 'rus':
+
+ffmpeg -i input.mp4 -map 0 -map -0:m:language:rus -c copy output.mp4
+# https://trac.ffmpeg.org/wiki/Map
