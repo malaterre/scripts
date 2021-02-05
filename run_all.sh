@@ -1,1 +1,7 @@
-for id in $(./noapos /tmp/kodi_videodb_2021-01-04/videodb.xml); do ./typography --verbose $id; done >& /tmp/t.log
+#!/bin/sh -e
+set -x
+
+videodb="$1"
+
+#for id in $(./checkvideoxml --print "$videodb"); do echo $id; done
+for id in $(./checkvideoxml --print "$videodb"); do ./fortiche --verbose $id; done
