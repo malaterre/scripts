@@ -39,6 +39,8 @@ def whitespacify(s):
 
 def cleanup(s):
     s = s.replace("'", "’").replace("...", "…")
+    # english quotes:
+    s = s.replace('“', '«').replace('”', '»')
     # chevrons
     while s.count('"') > 0 and s.count('"') % 2 == 0:
         s = s.replace('"', '«', 1).replace('"', '»', 1)
