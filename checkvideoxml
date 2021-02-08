@@ -31,8 +31,11 @@ def main(args):
                 mid = movie.find('uniqueid', attrs={"type": "tmdb"}).string
             except AttributeError:
                 print(title)
-                sys.exit(1)
+                continue
             plot = movie.plot.string
+            if not plot:
+                print(title)
+                continue
             tagline = movie.tagline.string
             if print_movie_id:
                 print(mid)
@@ -52,7 +55,8 @@ def main(args):
                 if tagline and 'oe' in tagline:
                     print(tagline)
                     print(mid)
-                if 'oe' in plot:
+                plotclean = plot.replace('Joe ', '')
+                if 'oe' in plotclean:
                     print(plot)
                     print(mid)
             elif curly:
