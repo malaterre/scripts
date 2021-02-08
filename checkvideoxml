@@ -27,7 +27,11 @@ def main(args):
             title = movie.title.string
             mid = movie.id.string
             # uniqueid type="tmdb">8329</uniqueid>
-            mid = movie.find('uniqueid', attrs={"type": "tmdb"}).string
+            try:
+                mid = movie.find('uniqueid', attrs={"type": "tmdb"}).string
+            except AttributeError:
+                print(title)
+                sys.exit(1)
             plot = movie.plot.string
             tagline = movie.tagline.string
             if print_movie_id:
@@ -44,7 +48,7 @@ def main(args):
                     # print(plot)
                     print(misspelled)
                     print(mid)
-            elif oe: # œ
+            elif oe:  # œ
                 if tagline and 'oe' in tagline:
                     print(tagline)
                     print(mid)
